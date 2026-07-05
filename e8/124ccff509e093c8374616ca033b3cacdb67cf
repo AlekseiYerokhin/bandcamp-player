@@ -1,0 +1,57 @@
+src/core/controller.py
+  s_048ae6219ac3d0::t_d1ed741558fc25 1
+  s_7b3ab6f9657b26::t_75202c4792a87d 40
+src/ui/main_window.py
+  s_7b3ab6f9657b26::t_ce0a4ecc901226 66-67
+  s_7b3ab6f9657b26::t_0e3c1f635dbb01 1,5,7-8,11
+  s_7b3ab6f9657b26::t_c4be9e47f629d2 35-65,70-73
+  s_7b3ab6f9657b26::t_75c60948536ede 23-27,33
+  s_7b3ab6f9657b26::t_8677f7f06c81aa 12
+  s_7b3ab6f9657b26::t_983a9cbc04b8e3 34
+src/core/player.py
+  h_5fd012f9b7458f 5,13
+main.py
+  s_7b3ab6f9657b26::t_31f16d594659f1 14-15
+  s_7cc276b7ca3bd2::t_bfab739e2d8990 20
+  s_7cc276b7ca3bd2::t_6bf7ad7712c09f 4,17-19,21-22,24-25
+  s_7cc276b7ca3bd2::t_869ebc54d1430d 32
+  s_7cc276b7ca3bd2::t_41705a392c02c9 23,26-28
+  s_7b3ab6f9657b26::t_1ebdd8f01d3257 2,33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "e8124ccff509e093c8374616ca033b3cacdb67cf",
+  "prompts": {},
+  "humans": {
+    "h_5fd012f9b7458f": {
+      "author": "Aleksei Yerokhin <ayerokhin@tula.co>"
+    }
+  },
+  "sessions": {
+    "s_048ae6219ac3d0": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_134b4a5eeffetxtsRZh45hVtg1",
+        "model": "glm-5.1"
+      },
+      "human_author": "Aleksei Yerokhin <ayerokhin@tula.co>"
+    },
+    "s_7b3ab6f9657b26": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_12a885345ffeucOq0Z0PlBH9NA",
+        "model": "glm-5.1"
+      },
+      "human_author": "Aleksei Yerokhin <ayerokhin@tula.co>"
+    },
+    "s_7cc276b7ca3bd2": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_0f23565a8ffeH23NV9SfuBncNe",
+        "model": "glm-5.1"
+      },
+      "human_author": "Aleksei Yerokhin <ayerokhin@tula.co>"
+    }
+  }
+}
