@@ -1,4 +1,4 @@
-from PySide6.QtCore import QObject, Qt
+from PySide6.QtCore import QObject
 from .engine import BandcampEngine
 from .player import AudioPlayer
 
@@ -37,7 +37,7 @@ class Controller(QObject):
 
     def _on_window_closing(self):
         self.engine.cleanup()
-        self.player.stop()
+        self.player.cleanup()
 
     def _on_search_requested(self, query: str):
         self.window.clear_results()

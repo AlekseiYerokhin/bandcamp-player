@@ -2,7 +2,7 @@ from PySide6.QtCore import QObject, Signal, QTimer
 import vlc
 
 
-class AudioPlayer(QObject):
+class areAudioPlayer(QObject):
     position_changed = Signal(int)
     duration_changed = Signal(int)
     playback_state_changed = Signal(int)
@@ -10,7 +10,7 @@ class AudioPlayer(QObject):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self._instance = vlc.Instance("--verbose=0")
+        self._instance = vlc.Instance()
         self._player = self._instance.media_player_new()
 
         self._position_timer = QTimer(self)

@@ -1,11 +1,14 @@
+import os
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton,
     QStackedWidget, QScrollArea, QFrame, QSlider, QLabel, QGridLayout,
-    QSizePolicy
+    QSystemTrayIcon, QMenu
 )
-from PySide6.QtCore import Qt, QSize, Signal, QUrl
-from PySide6.QtGui import QPixmap, QIcon, QCloseEvent
+from PySide6.QtCore import Qt, Signal, QUrl, QSize
+from PySide6.QtGui import QPixmap, QIcon, QCloseEvent, QAction
 from PySide6.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
+
+_ASSETS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "assets")
 
 
 class MainWindow(QMainWindow):
@@ -17,13 +20,57 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("Bandcamp Player")
         self.setMinimumSize(1100, 700)
+
+        icon_path = os.path.join(_ASSETS_DIR, "icon.png")
+        if os.path.exists(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
+
         self._image_loader = QNetworkAccessManager(self)
         self._image_loader.finished.connect(self._on_image_loaded)
         self._pending_images = {}
         self._setup_ui()
         self._apply_styles()
+        self._setup_tray()
+
+    def _setup_tray(self):
+        icon_path = os.path.join(_ASSETS_DIR, "icon.png")
+        icon = QIcon(icon_path) if os.path.exists(icon_path) else self.style().standardIcon(self.style().SP_ComputerIcon)
+
+        self._tray_menu = QMenu()
+        show_action = QAction("Show", self)
+        show_action.triggered.connect(self._show_window)
+        quit_action = QAction("Quit", self)
+        quit_action.triggered.connect(self._quit_app)
+
+        self._tray_menu.addAction(show_action)
+        self._tray_menu.addSeparator()
+        self._tray_menu.addAction(quit_action)
+
+        self._tray_icon = QSystemTrayIcon(icon, self)
+        self._tray_icon.setContextMenu(self._tray_menu)
+        self._tray_icon.activated.connect(self._on_tray_activated)
+        self._tray_icon.show()
+
+    def _on_tray_activated(self, reason):
+        if reason == QSystemTrayIcon.Trigger:
+            self._show_window()
+
+    def _show_window(self):
+        self.show()
+        self.raise_()
+        self.activateWindow()
+
+    def _quit_app(self):
+        self.closing.emit()
+        self._tray_icon.hide()
+        from PySide6.QtWidgets import QApplication
+        QApplication.quit()
 
     def closeEvent(self, event: QCloseEvent):
+        if self._tray_icon.isVisible():
+            self.hide()
+            event.ignore()
+            return
         self.closing.emit()
         super().closeEvent(event)
 

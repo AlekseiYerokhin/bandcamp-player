@@ -1,5 +1,4 @@
 from PySide6.QtWebEngineCore import QWebEngineUrlRequestInterceptor
-from PySide6.QtCore import QObject
 
 
 class BandcampRequestInterceptor(QWebEngineUrlRequestInterceptor):
