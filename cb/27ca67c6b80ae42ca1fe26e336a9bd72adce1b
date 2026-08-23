@@ -1,0 +1,102 @@
+src/core/player.py
+  s_8cb8cc241b4fd5::t_e3aa25235595e8 1,6,14-15
+  s_8cb8cc241b4fd5::t_33b06266dca668 57-60
+  s_8cb8cc241b4fd5::t_cce9632c935934 68
+src/core/engine.py
+  s_8cb8cc241b4fd5::t_d104837337fa96 27,29-31,33
+  s_623aaa7545634b::t_7b971babe8a484 253-260,265,278-280,285
+  s_623aaa7545634b::t_97370ab2dd5ec3 17
+  s_8cb8cc241b4fd5::t_f54e89ef48557f 62
+  s_8cb8cc241b4fd5::t_6f1624cc4de33c 81
+  s_3d7f1e8c7bdcef::t_e604750e5c17e1 224
+  s_623aaa7545634b::t_dd91ad012bafae 92-97,105-109
+  s_8cb8cc241b4fd5::t_5cd3838b5d3708 24
+  s_3d7f1e8c7bdcef::t_bb15feb58e9048 246,251-252,283
+  s_3d7f1e8c7bdcef::t_849c3e64352032 261-264,266-267,281
+  s_623aaa7545634b::t_be5bb4127e6acb 268
+  s_623aaa7545634b::t_bbf6557ee526a1 146-220
+  s_3d7f1e8c7bdcef::t_c0696283eddc33 37-47
+  s_623aaa7545634b::t_3fd23b6889a19f 110
+src/ui/main_window.py
+  s_8cb8cc241b4fd5::t_ef00f6f8bb8bba 88
+  s_8cb8cc241b4fd5::t_fd6d06938bb623 541-542
+  s_3d7f1e8c7bdcef::t_d384b8087524a0 437,439-441,449-462
+  s_3d7f1e8c7bdcef::t_19aa3a91cf1288 400-403
+  s_3d7f1e8c7bdcef::t_4bf0f2d0f16cd9 5
+  s_3d7f1e8c7bdcef::t_4062f39b061061 8
+  s_3d7f1e8c7bdcef::t_763808b70e93b0 66
+  s_3d7f1e8c7bdcef::t_2070e2e3a876ca 438,442-448
+  s_3d7f1e8c7bdcef::t_48daabde75686b 570
+  s_3d7f1e8c7bdcef::t_c61f770e5fa720 10
+  s_3d7f1e8c7bdcef::t_973ad690e406a8 386,481
+  s_3d7f1e8c7bdcef::t_d1d8ced3578b46 389
+  s_3d7f1e8c7bdcef::t_599eed82f252fb 15-63
+  s_3d7f1e8c7bdcef::t_b296700ee3918a 333-335,337,344-345
+  s_3d7f1e8c7bdcef::t_ddce960dfd3b76 609-612
+  s_623aaa7545634b::t_6cf4c9699ad45a 171,175
+  s_3d7f1e8c7bdcef::t_dbc5f68ef05349 559-562,572-582,588-589
+  s_8cb8cc241b4fd5::t_b8ad0bc9271591 106
+  s_3d7f1e8c7bdcef::t_dc7342bc7a6dd6 720
+  s_3d7f1e8c7bdcef::t_d9313fd353dd87 725-735
+  s_8cb8cc241b4fd5::t_3868f8d755498d 272,293,326,338,634,639,667
+  s_3d7f1e8c7bdcef::t_a0f8f0bd8c4235 189-195,197
+  s_3d7f1e8c7bdcef::t_575d17a14ef00e 336
+  s_3d7f1e8c7bdcef::t_7ff392b4f96d16 310,314,318
+  s_3d7f1e8c7bdcef::t_f5e4bcf540c3f5 374,377,476,493,500
+  s_3d7f1e8c7bdcef::t_70ecd6be997491 139-146
+  s_623aaa7545634b::t_5b3899c015a18b 202-262
+  s_8cb8cc241b4fd5::t_f9a7eeae89db72 543-545
+  s_623aaa7545634b::t_2be64f096bfc61 413-417
+  s_623aaa7545634b::t_2390e2c4eb4094 395
+  s_3d7f1e8c7bdcef::t_dd21b25aa757de 539-540,546
+  s_3d7f1e8c7bdcef::t_396db99f994cc4 552-557,563-569,571,583-587,590-601,604,607-608
+  s_3d7f1e8c7bdcef::t_452f3b4c8e473a 558
+  s_3d7f1e8c7bdcef::t_10ab8e4ddbbe66 613
+src/core/controller.py
+  s_3d7f1e8c7bdcef::t_13daf1c57f8f43 57,73-74
+  s_623aaa7545634b::t_19680338a723b1 29
+  s_3d7f1e8c7bdcef::t_7ba5a79cc715f8 68-69
+  s_623aaa7545634b::t_b4fe3a79040b3a 157-179
+  s_3d7f1e8c7bdcef::t_cf62035d9bce17 15-18
+  s_3d7f1e8c7bdcef::t_49bb36685ccf66 26
+  s_3d7f1e8c7bdcef::t_a5547a27686446 54,56,58-67,70-72,75-103,105
+  s_623aaa7545634b::t_f3f21a8f41097a 104,106-107,113-114
+  s_8cb8cc241b4fd5::t_04aea286e7694f 12
+  s_623aaa7545634b::t_151ba0ed39bd1b 120-123
+  s_8cb8cc241b4fd5::t_fb8a6fc9e3902d 185
+  s_623aaa7545634b::t_f6b465f1a82e4d 115
+main.py
+  s_8cb8cc241b4fd5::t_f8a0cf8bba75fd 21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.23",
+  "base_commit_sha": "cb27ca67c6b80ae42ca1fe26e336a9bd72adce1b",
+  "prompts": {},
+  "sessions": {
+    "s_3d7f1e8c7bdcef": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_fd89a51f8ffeLQ9TR6FqS11PNS",
+        "model": "qwen3.7-max"
+      },
+      "human_author": "Aleksei Yerokhin <ayerokhin@tula.co>"
+    },
+    "s_623aaa7545634b": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_fd216bd6bffePzqZP71LTMRulD",
+        "model": "qwen3.7-max"
+      },
+      "human_author": "Aleksei Yerokhin <ayerokhin@tula.co>"
+    },
+    "s_8cb8cc241b4fd5": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_08028f69effeRPgFgMnetNapMG",
+        "model": "glm-5.1"
+      },
+      "human_author": "Aleksei Yerokhin <ayerokhin@tula.co>"
+    }
+  }
+}
