@@ -1,0 +1,36 @@
+pyproject.toml
+  s_623aaa7545634b::t_8e93707f7b9fa8 1-17
+.github/workflows/build-appimage.yml
+  s_623aaa7545634b::t_2624b8b9b2a41a 1-51
+.gitignore
+  s_623aaa7545634b::t_3f5f30da51fb16 8
+packaging/build-appimage.sh
+  s_623aaa7545634b::t_1945897e8a8e7e 137
+  s_623aaa7545634b::t_8fc44bda60fa22 47-51,65
+  s_623aaa7545634b::t_b777fd4a507706 123
+  s_623aaa7545634b::t_a197906b51abf9 37-39
+  s_623aaa7545634b::t_04d83656b7854d 1-36,40-46,52-64,66-122,124-136,138-187
+packaging/AppDir/bandcamp-qt.desktop
+  s_623aaa7545634b::t_306e33407d54ea 1-7,9
+  s_623aaa7545634b::t_dbc213ac056636 8
+bandcamp-qt.spec
+  s_623aaa7545634b::t_ce8f1200e2e266 1-44
+packaging/AppDir/AppRun
+  s_623aaa7545634b::t_281c2102cdb9dd 1-9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.23",
+  "base_commit_sha": "69b74be9908dd12a88293bcca6e0c09050bf6e95",
+  "prompts": {},
+  "sessions": {
+    "s_623aaa7545634b": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_fd216bd6bffePzqZP71LTMRulD",
+        "model": "qwen3.7-max"
+      },
+      "human_author": "Aleksei Yerokhin <ayerokhin@tula.co>"
+    }
+  }
+}
