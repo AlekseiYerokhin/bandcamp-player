@@ -1,0 +1,20 @@
+.github/workflows/build-appimage.yml
+  s_623aaa7545634b::t_9e3e00cfc055c1 49
+  s_623aaa7545634b::t_15ba0f52084ee0 42-43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.23",
+  "base_commit_sha": "5b5fa1c45723a4a71508e33d410453ffe07ff218",
+  "prompts": {},
+  "sessions": {
+    "s_623aaa7545634b": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_fd216bd6bffePzqZP71LTMRulD",
+        "model": "qwen3.7-max"
+      },
+      "human_author": "Aleksei Yerokhin <ayerokhin@tula.co>"
+    }
+  }
+}
