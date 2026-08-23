@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Bandcamp QT Player
+Comment=Bandcamp Player built with Qt6 and VLC
+Exec=bandcamp-qt
+Icon=bandcamp-qt
+Terminal=false
+Type=Application
+Categories=AudioVideo;Audio;Music;Player;Qt;
+Keywords=bandcamp;music;player;audio;
