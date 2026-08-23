@@ -39,13 +39,13 @@ jobs:
       - name: Upload AppImage
         uses: actions/upload-artifact@v4
         with:
-          name: Bandcamp-QT-Player-AppImage
-          path: build/Bandcamp-QT-Player-*.AppImage
+          name: Bandcamp-Player-AppImage
+          path: build/Bandcamp-Player-*.AppImage
 
       - name: Create Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: build/Bandcamp-QT-Player-*.AppImage
+          files: build/Bandcamp-Player-*.AppImage
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
