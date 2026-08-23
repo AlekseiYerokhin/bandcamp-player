@@ -4,9 +4,9 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 BUILD_DIR="${PROJECT_DIR}/build"
-APPDIR="${BUILD_DIR}/bandcamp-qt.AppDir"
+APPDIR="${BUILD_DIR}/bandcamp-player.AppDir"
 ARCH="${ARCH:-x86_64}"
-APPIMAGE_NAME="Bandcamp-QT-Player-${ARCH}.AppImage"
+APPIMAGE_NAME="Bandcamp-Player-${ARCH}.AppImage"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -77,7 +77,7 @@ find_vlc_paths() {
 run_pyinstaller() {
     log "Running PyInstaller..."
     cd "$PROJECT_DIR"
-    pyinstaller bandcamp-qt.spec --clean --noconfirm
+    pyinstaller bandcamp.spec --clean --noconfirm
     log "PyInstaller done."
 }
 
@@ -90,8 +90,8 @@ build_appdir() {
     mkdir -p "${APPDIR}/usr/share/applications"
     mkdir -p "${APPDIR}/usr/share/icons/hicolor/256x256/apps"
 
-    cp "${PROJECT_DIR}/dist/bandcamp-qt" "${APPDIR}/usr/bin/bandcamp-qt"
-    chmod +x "${APPDIR}/usr/bin/bandcamp-qt"
+    cp "${PROJECT_DIR}/dist/bandcamp-player" "${APPDIR}/usr/bin/bandcamp-player"
+    chmod +x "${APPDIR}/usr/bin/bandcamp-player"
 
     find "${VLC_LIB_DIR}" -maxdepth 1 -name "libvlc.so*" -exec cp -L {} "${APPDIR}/usr/lib/" \;
     if [ -n "$VLC_CORE_LIB" ] && [ -f "$VLC_CORE_LIB" ]; then
@@ -104,23 +104,23 @@ build_appdir() {
     fi
 
     if [ -f "${PROJECT_DIR}/assets/icon32.png" ]; then
-        cp "${PROJECT_DIR}/assets/icon32.png" "${APPDIR}/bandcamp-qt.png"
+        cp "${PROJECT_DIR}/assets/icon32.png" "${APPDIR}/bandcamp-player.png"
     elif [ -f "${PROJECT_DIR}/assets/icon.png" ]; then
-        cp "${PROJECT_DIR}/assets/icon.png" "${APPDIR}/bandcamp-qt.png"
+        cp "${PROJECT_DIR}/assets/icon.png" "${APPDIR}/bandcamp-player.png"
     fi
 
     if [ -f "${PROJECT_DIR}/assets/icon.png" ]; then
-        cp "${PROJECT_DIR}/assets/icon.png" "${APPDIR}/usr/share/icons/hicolor/256x256/apps/bandcamp-qt.png"
+        cp "${PROJECT_DIR}/assets/icon.png" "${APPDIR}/usr/share/icons/hicolor/256x256/apps/bandcamp-player.png"
     fi
 
-    cp "${SCRIPT_DIR}/AppDir/bandcamp-qt.desktop" "${APPDIR}/bandcamp-qt.desktop"
-    cp "${SCRIPT_DIR}/AppDir/bandcamp-qt.desktop" "${APPDIR}/usr/share/applications/bandcamp-qt.desktop"
+    cp "${SCRIPT_DIR}/AppDir/bandcamp.desktop" "${APPDIR}/bandcamp-player.desktop"
+    cp "${SCRIPT_DIR}/AppDir/bandcamp.desktop" "${APPDIR}/usr/share/applications/bandcamp-player.desktop"
 
     cp "${SCRIPT_DIR}/AppDir/AppRun" "${APPDIR}/AppRun"
     chmod +x "${APPDIR}/AppRun"
 
-    if [ -f "${APPDIR}/bandcamp-qt.png" ]; then
-        ln -sf bandcamp-qt.png "${APPDIR}/.DirIcon"
+    if [ -f "${APPDIR}/bandcamp-player.png" ]; then
+        ln -sf bandcamp-player.png "${APPDIR}/.DirIcon"
     fi
 
     log "AppDir built at: ${APPDIR}"
@@ -171,7 +171,7 @@ print_summary() {
 }
 
 main() {
-    log "Building Bandcamp QT Player AppImage"
+    log "Building Bandcamp Player AppImage"
     log "Project dir: ${PROJECT_DIR}"
     log "Architecture: ${ARCH}"
 
