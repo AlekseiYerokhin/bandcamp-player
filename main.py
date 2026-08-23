@@ -18,7 +18,7 @@ def main():
         controller.engine.cleanup()
         controller.player.cleanup()
         for _ in range(3):
-            app.processEvents(QEventLoop.AllEvents)
+            app.processEvents(QEventLoop.ProcessEventsFlag.AllEvents)
         app.quit()
 
     signal.signal(signal.SIGINT, handle_sigint)

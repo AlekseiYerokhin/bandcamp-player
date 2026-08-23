@@ -1,8 +1,9 @@
+from typing import Any
 from PySide6.QtCore import QObject, Signal, QTimer
 import vlc
 
 
-class areAudioPlayer(QObject):
+class AudioPlayer(QObject):
     position_changed = Signal(int)
     duration_changed = Signal(int)
     playback_state_changed = Signal(int)
@@ -10,8 +11,8 @@ class areAudioPlayer(QObject):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self._instance = vlc.Instance()
-        self._player = self._instance.media_player_new()
+        self._instance: Any = vlc.Instance()
+        self._player: Any = self._instance.media_player_new()
 
         self._position_timer = QTimer(self)
         self._position_timer.setInterval(500)
@@ -53,6 +54,10 @@ class areAudioPlayer(QObject):
     def is_playing(self) -> bool:
         return self._player.is_playing()
 
+    def cleanup(self):
+        self.stop()
+        self._position_timer.stop()
+
     def _update_position(self):
         position = self._player.get_time()
         duration = self._player.get_length()
@@ -60,6 +65,6 @@ class areAudioPlayer(QObject):
         self.position_changed.emit(position)
         self.duration_changed.emit(duration)
 
-        if self._player.get_state() == vlc.State.Ended:
+        if self._player.get_state() == vlc.State.Ended:  # type: ignore[reportAttributeAccessIssue]
             self._position_timer.stop()
             self.playback_state_changed.emit(0)
