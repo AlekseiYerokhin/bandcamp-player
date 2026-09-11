@@ -12,6 +12,7 @@ class Controller(QObject):
         self._current_album_url: str | None = None
         self._tracks = []
         self._current_track_index = -1
+        self._last_view = 'search'
         
         self._search_results = {'album': [], 'track': [], 'artist': []}
         self._search_displayed = {'album': 0, 'track': 0, 'artist': 0}
@@ -64,8 +65,6 @@ class Controller(QObject):
             result_type = result.get('type', 'album')
             if result_type in self._search_results:
                 self._search_results[result_type].append(result)
-
-        print(f"Search results: {len(self._search_results['album'])} albums, {len(self._search_results['track'])} tracks, {len(self._search_results['artist'])} artists")
 
         for result_type in ['album', 'track', 'artist']:
             if self._search_results[result_type]:
@@ -120,6 +119,8 @@ class Controller(QObject):
     def _on_artist_data(self, success: bool, data: dict):
         if success:
             self._display_artist_discography(data)
+        else:
+            self._display_artist_discography({'name': 'Unknown Artist', 'albums': [], 'image_url': ''})
 
     def _display_album(self, data: dict):
         album_title = data.get('current', {}).get('title', 'Unknown Album')
@@ -152,7 +153,8 @@ class Controller(QObject):
             track_widget = self.window.add_track_to_tracklist(i, title, duration_str)
             track_widget.mousePressEvent = lambda e, idx=i-1: self._play_track(idx)
 
-        self.window.show_tracklist()
+        back_callback = self._go_back_to_artist if self._last_view == 'artist' else self.window.show_search_results
+        self.window.show_tracklist(back_callback)
 
     def _display_artist_discography(self, data: dict):
         artist_name = data.get('name', 'Unknown Artist')
@@ -175,6 +177,7 @@ class Controller(QObject):
             if card and album_url:
                 card.mousePressEvent = lambda e, url=album_url: self._on_album_clicked(url)
 
+        self._last_view = 'artist'
         self.window.show_artist_discography()
 
     def _play_track(self, index: int):
@@ -184,6 +187,9 @@ class Controller(QObject):
 
             self.player.load_and_play(track['url'], self._current_album_url or "")
             self.window.set_current_track(track['title'])
+
+    def _go_back_to_artist(self):
+        self.window.show_artist_discography()
 
     def _on_play_pause_clicked(self):
         if self.player.is_playing():

@@ -11,7 +11,7 @@ class AudioPlayer(QObject):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self._instance: Any = vlc.Instance()
+        self._instance: Any = vlc.Instance("--no-plugins-cache")
         self._player: Any = self._instance.media_player_new()
 
         self._position_timer = QTimer(self)

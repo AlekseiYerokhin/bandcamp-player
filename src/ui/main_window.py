@@ -212,13 +212,14 @@ class MainWindow(QMainWindow):
         self.artist_image_label.setStyleSheet("background-color: #2a2a2a; border-radius: 4px;")
         self.artist_name_label = QLabel("Artist Name")
         self.artist_name_label.setObjectName("artistName")
-        self.artist_back_button = QPushButton("← Back")
-        self.artist_back_button.setObjectName("backButton")
-        self.artist_back_button.clicked.connect(self.show_search_results)
+        self.back_button = QPushButton("← Back")
+        self.back_button.setObjectName("backButton")
+        self.back_button.clicked.connect(self.show_search_results)
 
-        header_layout.addWidget(self.artist_back_button)
+        header_layout.addWidget(self.back_button)
         header_layout.addWidget(self.artist_image_label)
-        header_layout.addWidget(self.artist_name_label)
+        self.artist_name_label.setWordWrap(True)
+        header_layout.addWidget(self.artist_name_label, 1)
         header_layout.addStretch()
 
         scroll = QScrollArea()
@@ -227,9 +228,9 @@ class MainWindow(QMainWindow):
 
         self.discography_container = QWidget()
         self.discography_container.setObjectName("discographyContainer")
-        self.discography_layout = QVBoxLayout(self.discography_container)
-        self.discography_layout.setSpacing(15)
-        self.discography_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.discography_layout = QGridLayout(self.discography_container)
+        self.discography_layout.setSpacing(20)
+        self.discography_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
 
         scroll.setWidget(self.discography_container)
 
@@ -250,8 +251,10 @@ class MainWindow(QMainWindow):
             self._load_image(image_url, self.artist_image_label, 200)
 
     def add_discography_album(self, title, image_url=None, album_type='album'):
+        row = self.discography_layout.count() // 3
+        col = self.discography_layout.count() % 3
         card = self._create_album_card(title, '', image_url)
-        self.discography_layout.addWidget(card)
+        self.discography_layout.addWidget(card, row, col)
         return card
 
     def clear_discography(self):
@@ -545,9 +548,15 @@ class MainWindow(QMainWindow):
                 widget.deleteLater()
         self._search_sections = {}
 
-    def show_tracklist(self):
+    def show_tracklist(self, back_callback=None):
         self.search_frame.hide()
         self.stacked_widget.setCurrentWidget(self.tracklist_widget)
+        if back_callback:
+            try:
+                self.back_button.clicked.disconnect()
+            except RuntimeError:
+                pass
+            self.back_button.clicked.connect(back_callback)
 
     def add_search_section(self, result_type: str):
         section_widget = QFrame()

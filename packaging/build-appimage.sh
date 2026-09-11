@@ -99,8 +99,46 @@ build_appdir() {
     fi
 
     if [ -n "$VLC_PLUGINS_DIR" ] && [ -d "$VLC_PLUGINS_DIR" ]; then
-        log "Copying VLC plugins (this may take a moment)..."
-        cp -rL "${VLC_PLUGINS_DIR}/"* "${APPDIR}/usr/lib/vlc/plugins/" 2>/dev/null || true
+        log "Copying essential VLC plugins (trimming unused modules)..."
+        
+        mkdir -p "${APPDIR}/usr/lib/vlc/plugins/access"
+        mkdir -p "${APPDIR}/usr/lib/vlc/plugins/demux"
+        mkdir -p "${APPDIR}/usr/lib/vlc/plugins/codec"
+        mkdir -p "${APPDIR}/usr/lib/vlc/plugins/audio_output"
+        mkdir -p "${APPDIR}/usr/lib/vlc/plugins/audio_filter"
+        mkdir -p "${APPDIR}/usr/lib/vlc/plugins/misc"
+        mkdir -p "${APPDIR}/usr/lib/vlc/plugins/stream_filter"
+        mkdir -p "${APPDIR}/usr/lib/vlc/plugins/audio_mixer"
+        
+        cp -L "${VLC_PLUGINS_DIR}/access/libaccess_concat_plugin.so" "${APPDIR}/usr/lib/vlc/plugins/access/" 2>/dev/null || true
+        cp -L "${VLC_PLUGINS_DIR}/access/libhttp_plugin.so" "${APPDIR}/usr/lib/vlc/plugins/access/" 2>/dev/null || true
+        cp -L "${VLC_PLUGINS_DIR}/access/libhttps_plugin.so" "${APPDIR}/usr/lib/vlc/plugins/access/" 2>/dev/null || true
+        cp -L "${VLC_PLUGINS_DIR}/access/libfilesystem_plugin.so" "${APPDIR}/usr/lib/vlc/plugins/access/" 2>/dev/null || true
+        
+        cp -L "${VLC_PLUGINS_DIR}/demux/libmp4_plugin.so" "${APPDIR}/usr/lib/vlc/plugins/demux/" 2>/dev/null || true
+        cp -L "${VLC_PLUGINS_DIR}/demux/libmp3_plugin.so" "${APPDIR}/usr/lib/vlc/plugins/demux/" 2>/dev/null || true
+        cp -L "${VLC_PLUGINS_DIR}/demux/libogg_plugin.so" "${APPDIR}/usr/lib/vlc/plugins/demux/" 2>/dev/null || true
+        cp -L "${VLC_PLUGINS_DIR}/demux/libflacsys_plugin.so" "${APPDIR}/usr/lib/vlc/plugins/demux/" 2>/dev/null || true
+        cp -L "${VLC_PLUGINS_DIR}/demux/libadaptive_plugin.so" "${APPDIR}/usr/lib/vlc/plugins/demux/" 2>/dev/null || true
+        
+        cp -L "${VLC_PLUGINS_DIR}/codec/libmpg123_plugin.so" "${APPDIR}/usr/lib/vlc/plugins/codec/" 2>/dev/null || true
+        cp -L "${VLC_PLUGINS_DIR}/codec/libfaad_plugin.so" "${APPDIR}/usr/lib/vlc/plugins/codec/" 2>/dev/null || true
+        cp -L "${VLC_PLUGINS_DIR}/codec/libflac_plugin.so" "${APPDIR}/usr/lib/vlc/plugins/codec/" 2>/dev/null || true
+        cp -L "${VLC_PLUGINS_DIR}/codec/libvorbis_plugin.so" "${APPDIR}/usr/lib/vlc/plugins/codec/" 2>/dev/null || true
+        cp -L "${VLC_PLUGINS_DIR}/codec/libopus_plugin.so" "${APPDIR}/usr/lib/vlc/plugins/codec/" 2>/dev/null || true
+        cp -L "${VLC_PLUGINS_DIR}/codec/liba52_plugin.so" "${APPDIR}/usr/lib/vlc/plugins/codec/" 2>/dev/null || true
+        
+        cp -L "${VLC_PLUGINS_DIR}/audio_output/libpulse_plugin.so" "${APPDIR}/usr/lib/vlc/plugins/audio_output/" 2>/dev/null || true
+        cp -L "${VLC_PLUGINS_DIR}/audio_output/libalsa_plugin.so" "${APPDIR}/usr/lib/vlc/plugins/audio_output/" 2>/dev/null || true
+        
+        cp -L "${VLC_PLUGINS_DIR}/audio_filter/libscaletempo_plugin.so" "${APPDIR}/usr/lib/vlc/plugins/audio_filter/" 2>/dev/null || true
+        cp -L "${VLC_PLUGINS_DIR}/audio_filter/libsamplerate_plugin.so" "${APPDIR}/usr/lib/vlc/plugins/audio_filter/" 2>/dev/null || true
+        
+        cp -L "${VLC_PLUGINS_DIR}/misc/libgnutls_plugin.so" "${APPDIR}/usr/lib/vlc/plugins/misc/" 2>/dev/null || true
+        
+        cp -L "${VLC_PLUGINS_DIR}/stream_filter/libprefetch_plugin.so" "${APPDIR}/usr/lib/vlc/plugins/stream_filter/" 2>/dev/null || true
+        
+        cp -L "${VLC_PLUGINS_DIR}/audio_mixer/libfloat_mixer_plugin.so" "${APPDIR}/usr/lib/vlc/plugins/audio_mixer/" 2>/dev/null || true
     fi
 
     if [ -f "${PROJECT_DIR}/assets/icon32.png" ]; then

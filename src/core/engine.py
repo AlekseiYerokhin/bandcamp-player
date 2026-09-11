@@ -104,7 +104,7 @@ class BandcampEngine(QObject):
                 self._pending_action = None
         elif self._pending_action == "artist_data":
             if ok:
-                QTimer.singleShot(1000, self._extract_artist_data)
+                QTimer.singleShot(1500, self._extract_artist_data)
             else:
                 self.artist_data_ready.emit(False, {})
                 self._pending_action = None
@@ -151,28 +151,46 @@ class BandcampEngine(QObject):
                 albums: [],
                 image_url: ''
             };
-            
-            var nameEl = document.querySelector('.title') || document.querySelector('h1') || document.querySelector('.artist-name');
-            if (nameEl) {
-                result.name = nameEl.textContent.trim();
+
+            var titleText = document.title || '';
+            var match = titleText.match(/^(.+?)\\s*[-–—|]\\s*/);
+            if (match && match[1]) {
+                var cleaned = match[1].trim();
+                if (cleaned.toLowerCase() === 'music') {
+                    var bandScript = document.querySelector('script[data-band]');
+                    if (bandScript) {
+                        try {
+                            var bandData = JSON.parse(bandScript.getAttribute('data-band'));
+                            result.name = bandData.name || '';
+                        } catch(e) {}
+                    }
+                } else {
+                    result.name = cleaned;
+                }
             }
-            
-            var bioImg = document.querySelector('.bio-pic img') || document.querySelector('.artist-photo img');
-            if (bioImg) {
-                result.image_url = bioImg.getAttribute('data-original') || bioImg.getAttribute('src') || '';
+            if (!result.name) {
+                var nameEl = document.querySelector('h1') || document.querySelector('.artist-name');
+                if (nameEl) result.name = nameEl.textContent.trim();
+            }
+
+            var img = document.querySelector('.bio-pic img') || document.querySelector('.artist-photo img');
+            if (!img) {
+                img = document.querySelector('#bio-container img') || document.querySelector('.rightColumn img');
+            }
+            if (img) {
+                result.image_url = img.getAttribute('data-original') || img.getAttribute('src') || '';
                 if (result.image_url && result.image_url.startsWith('//')) {
                     result.image_url = 'https:' + result.image_url;
                 }
             }
-            
-            var discItems = document.querySelectorAll('#discography ol li, .discography li, #music-grid li, [data-album]');
+
+            var discItems = document.querySelectorAll('#music-grid > li, #discography ol li, .discography li');
             for (var i = 0; i < discItems.length; i++) {
                 var item = discItems[i];
                 var link = item.querySelector('a');
-                var titleEl = item.querySelector('.title') || item.querySelector('.name') || link;
-                var artEl = item.querySelector('img') || item.querySelector('.art img');
-                var typeEl = item.querySelector('.type');
-                
+                var titleEl = item.querySelector('.title') || item.querySelector('.name');
+                var artEl = item.querySelector('div.art img') || item.querySelector('img');
+
                 if (link && titleEl) {
                     var imgUrl = '';
                     if (artEl) {
@@ -181,18 +199,16 @@ class BandcampEngine(QObject):
                             imgUrl = 'https:' + imgUrl;
                         }
                     }
-                    
+
+                    var itemId = item.getAttribute('data-item-id') || '';
                     var albumType = 'album';
-                    if (typeEl) {
-                        var typeText = typeEl.textContent.trim().toLowerCase();
-                        if (typeText.includes('track')) albumType = 'track';
-                    }
-                    
+                    if (itemId.startsWith('track-')) albumType = 'track';
+
                     var href = link.href || link.getAttribute('href') || '';
                     if (href && !href.startsWith('http')) {
                         href = window.location.origin + href;
                     }
-                    
+
                     result.albums.push({
                         title: titleEl.textContent.trim(),
                         url: href,
@@ -201,7 +217,7 @@ class BandcampEngine(QObject):
                     });
                 }
             }
-            
+
             return JSON.stringify(result);
         })()
         """
