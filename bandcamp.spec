@@ -75,8 +75,6 @@ a = Analysis(
         'PySide6.QtStateMachine',
         'PySide6.QtStateMachineQml',
         'PySide6.QtTest',
-        'PySide6.QtWebChannel',
-        'PySide6.QtWebChannelQuick',
         'PySide6.QtWebEngineQuick',
         'PySide6.QtWebEngineQuickDelegatesQml',
         'PySide6.QtWebView',
