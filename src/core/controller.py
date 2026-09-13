@@ -224,7 +224,8 @@ class Controller(QObject):
         self.window.set_play_state(is_playing)
 
         if not is_playing and self._current_track_index < len(self._tracks) - 1:
-            if self.player._player.get_time() >= self.player._player.get_length() - 500:
+            length = self.player._player.get_length()
+            if length > 0 and self.player._player.get_time() >= length - 500:
                 self._on_next_clicked()
 
     def _on_progress_moved(self, position: int):

@@ -12,7 +12,6 @@ a = Analysis(
         'PySide6.QtWebEngineCore',
         'PySide6.QtSvg',
         'PySide6.QtNetwork',
-        'PySide6.QtMultimedia',
     ],
     hookspath=[],
     hooksconfig={},
@@ -116,6 +115,18 @@ a = Analysis(
     ],
     noarchive=False,
 )
+
+_STRIP_BINARIES = (
+    'libvlc',
+    'libvlccore',
+    'libavcodec',
+    'libavformat',
+    'libavutil',
+    'libswresample',
+    'libswscale',
+    'libfontconfig',
+)
+a.binaries = [b for b in a.binaries if not b[0].startswith(_STRIP_BINARIES)]
 
 pyz = PYZ(a.pure)
 
