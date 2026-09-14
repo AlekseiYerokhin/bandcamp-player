@@ -1,6 +1,7 @@
 from PySide6.QtCore import QObject
 from .engine import BandcampEngine
 from .player import AudioPlayer
+from .bandcamp_api import BandcampAPI
 
 
 class Controller(QObject):
@@ -9,14 +10,12 @@ class Controller(QObject):
         self.window = window
         self.engine = BandcampEngine()
         self.player = AudioPlayer()
-        self._current_album_url: str | None = None
+        self._current_band_id: int | None = None
         self._tracks = []
         self._current_track_index = -1
         self._last_view = 'search'
         
         self._search_results = {'album': [], 'track': [], 'artist': []}
-        self._search_displayed = {'album': 0, 'track': 0, 'artist': 0}
-        self._page_size = 12
 
         self._connect_signals()
         self._setup_player()
@@ -24,7 +23,6 @@ class Controller(QObject):
     def _connect_signals(self):
         self.window.closing.connect(self._on_window_closing)
         self.window.search_requested.connect(self._on_search_requested)
-        self.window.load_more_requested.connect(self._on_load_more_clicked)
         self.engine.search_results_ready.connect(self._on_search_results)
         self.engine.album_data_ready.connect(self._on_album_data)
         self.engine.artist_data_ready.connect(self._on_artist_data)
@@ -59,7 +57,6 @@ class Controller(QObject):
             return
 
         self._search_results = {'album': [], 'track': [], 'artist': []}
-        self._search_displayed = {'album': 0, 'track': 0, 'artist': 0}
 
         for result in results:
             result_type = result.get('type', 'album')
@@ -74,14 +71,9 @@ class Controller(QObject):
 
     def _display_search_section(self, result_type: str):
         items = self._search_results[result_type]
-        start = self._search_displayed[result_type]
-        end = min(start + self._page_size, len(items))
-        
-        if start == 0:
-            self.window.add_search_section(result_type)
-        
-        for i in range(start, end):
-            result = items[i]
+        self.window.add_search_section(result_type)
+
+        for result in items:
             card = self.window.add_album_to_results(
                 result['title'],
                 result['artist'],
@@ -89,28 +81,21 @@ class Controller(QObject):
                 result_type
             )
             if card:
-                card.mousePressEvent = lambda e, url=result['url'], rtype=result_type: self._on_result_clicked(url, rtype)
-        
-        self._search_displayed[result_type] = end
-        
-        has_more = end < len(items)
-        self.window.update_section_load_more(result_type, has_more)
+                card.mousePressEvent = lambda e, b=result['band_id'], i=result['id'], rtype=result_type: self._on_result_clicked(b, i, rtype)
 
-    def _on_load_more_clicked(self, result_type: str):
-        self._display_search_section(result_type)
-
-    def _on_result_clicked(self, url: str, result_type: str):
-        if result_type == 'album' or result_type == 'track':
-            self._on_album_clicked(url)
+    def _on_result_clicked(self, band_id, item_id, result_type):
+        if result_type == 'album':
+            self._on_album_clicked(band_id, item_id, 'a')
         elif result_type == 'artist':
-            self._on_artist_clicked(url)
+            self._on_artist_clicked(band_id)
 
-    def _on_album_clicked(self, url: str):
-        self._current_album_url = url
-        self.engine.get_album_data(url)
+    def _on_album_clicked(self, band_id, tralbum_id, tralbum_type='a'):
+        self._current_band_id = band_id
+        self.engine.get_album_data(band_id, tralbum_id, tralbum_type)
 
-    def _on_artist_clicked(self, url: str):
-        self.engine.get_artist_data(url)
+    def _on_artist_clicked(self, band_id):
+        self._current_band_id = band_id
+        self.engine.get_artist_data(band_id)
 
     def _on_album_data(self, success: bool, data: dict):
         if success:
@@ -123,13 +108,12 @@ class Controller(QObject):
             self._display_artist_discography({'name': 'Unknown Artist', 'albums': [], 'image_url': ''})
 
     def _display_album(self, data: dict):
-        album_title = data.get('current', {}).get('title', 'Unknown Album')
+        album_title = data.get('title', 'Unknown Album')
         self.window.album_title_label.setText(album_title)
 
         art_id = data.get('art_id')
         if art_id:
-            cover_url = f"https://f4.bcbits.com/img/a{art_id}_10.jpg"
-            self.window.set_album_cover(cover_url)
+            self.window.set_album_cover(BandcampAPI.image_url(art_id))
 
         while self.window.tracklist_layout.count():
             item = self.window.tracklist_layout.takeAt(0)
@@ -137,16 +121,16 @@ class Controller(QObject):
                 item.widget().deleteLater()
 
         self._tracks = []
-        track_list = data.get('trackinfo', [])
+        track_list = data.get('tracks', [])
 
         for i, track in enumerate(track_list, 1):
             title = track.get('title', 'Unknown')
-            duration_ms = int(track.get('duration', 0) * 1000)
+            duration_ms = int(track.get('duration', 0))
             duration_str = self._format_duration(duration_ms)
 
             self._tracks.append({
                 'title': title,
-                'url': (track.get('file') or {}).get('mp3-128', ''),
+                'url': track.get('url', ''),
                 'duration': duration_ms
             })
 
@@ -166,16 +150,16 @@ class Controller(QObject):
 
         self.window.clear_discography()
 
+        band_id = self._current_band_id
         albums = data.get('albums', [])
         for album in albums:
             title = album.get('title', 'Unknown')
-            album_url = album.get('url', '')
             album_image = album.get('image_url')
-            album_type = album.get('type', 'album')
+            album_type = album.get('item_type', 'album')
 
             card = self.window.add_discography_album(title, album_image, album_type)
-            if card and album_url:
-                card.mousePressEvent = lambda e, url=album_url: self._on_album_clicked(url)
+            if card and album.get('item_id'):
+                card.mousePressEvent = lambda e, bid=band_id, iid=album['item_id'], itype=album_type: self._on_album_clicked(bid, iid, itype)
 
         self._last_view = 'artist'
         self.window.show_artist_discography()
@@ -185,7 +169,7 @@ class Controller(QObject):
             self._current_track_index = index
             track = self._tracks[index]
 
-            self.player.load_and_play(track['url'], self._current_album_url or "")
+            self.player.load_and_play(track['url'])
             self.window.set_current_track(track['title'])
 
     def _go_back_to_artist(self):

@@ -63,7 +63,6 @@ class IconButton(QPushButton):
 
 class MainWindow(QMainWindow):
     search_requested = Signal(str)
-    load_more_requested = Signal(str)
 
     closing = Signal()
 
@@ -450,19 +449,6 @@ class MainWindow(QMainWindow):
             #sectionHeader:hover {
                 background-color: #282828;
             }
-            #loadMoreButton {
-                background-color: transparent;
-                color: #0cacd7;
-                border: 1px solid #0cacd7;
-                border-radius: 20px;
-                padding: 8px 30px;
-                font-size: 13px;
-                font-weight: bold;
-            }
-            #loadMoreButton:hover {
-                background-color: #0cacd7;
-                color: #ffffff;
-            }
             #playerBar {
                 background-color: #181818;
                 border-top: 1px solid #282828;
@@ -574,27 +560,19 @@ class MainWindow(QMainWindow):
         grid.setSpacing(20)
         grid.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
 
-        load_more_btn = QPushButton("Load More")
-        load_more_btn.setObjectName("loadMoreButton")
-        load_more_btn.clicked.connect(lambda checked, rt=result_type: self.load_more_requested.emit(rt))
-        load_more_btn.hide()
-
         def toggle_section():
             is_visible = grid_widget.isVisible()
             grid_widget.setVisible(not is_visible)
-            load_more_btn.setVisible(not is_visible and load_more_btn.isEnabled())
             header_btn.setText(f"{'▶' if is_visible else '▼'} {result_type.capitalize()}s")
 
         header_btn.clicked.connect(toggle_section)
 
         section_layout.addWidget(header_btn)
         section_layout.addWidget(grid_widget)
-        section_layout.addWidget(load_more_btn, alignment=Qt.AlignmentFlag.AlignCenter)
 
         self._search_sections[result_type] = {
             'widget': section_widget,
             'grid': grid,
-            'load_more_btn': load_more_btn,
             'grid_widget': grid_widget
         }
 
@@ -612,13 +590,6 @@ class MainWindow(QMainWindow):
         album_widget = self._create_album_card(title, artist, image_url)
         grid.addWidget(album_widget, row, col)
         return album_widget
-
-    def update_section_load_more(self, result_type: str, has_more: bool):
-        if result_type in self._search_sections:
-            section = self._search_sections[result_type]
-            btn = section['load_more_btn']
-            btn.setEnabled(has_more)
-            btn.setVisible(has_more and section['grid_widget'].isVisible())
 
     def _load_image(self, url, label, size=176):
         if not url:

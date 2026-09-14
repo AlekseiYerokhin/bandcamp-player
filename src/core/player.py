@@ -18,9 +18,8 @@ class AudioPlayer(QObject):
         self._position_timer.setInterval(500)
         self._position_timer.timeout.connect(self._update_position)
 
-    def load_and_play(self, stream_url: str, referer_url: str):
+    def load_and_play(self, stream_url: str):
         media = self._instance.media_new(stream_url)
-        media.add_option(f':http-referrer={referer_url}')
         media.add_option(':http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64)')
 
         self._player.set_media(media)
