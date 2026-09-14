@@ -10,8 +10,26 @@ requires-python = ">=3.10"
 dependencies = [
     "PySide6",
     "python-vlc",
-    "requests",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "ruff",
+    "pyinstaller",
 ]
 
 [project.scripts]
 bandcamp-player = "main:main"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]

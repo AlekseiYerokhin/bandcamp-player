@@ -1,7 +1,8 @@
 from PySide6.QtCore import QObject
+
+from .bandcamp_api import BandcampAPI
 from .engine import BandcampEngine
 from .player import AudioPlayer
-from .bandcamp_api import BandcampAPI
 
 
 class Controller(QObject):
@@ -14,7 +15,7 @@ class Controller(QObject):
         self._tracks = []
         self._current_track_index = -1
         self._last_view = 'search'
-        
+
         self._search_results = {'album': [], 'track': [], 'artist': []}
 
         self._connect_signals()

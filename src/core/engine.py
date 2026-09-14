@@ -1,5 +1,7 @@
 import threading
+
 from PySide6.QtCore import QObject, Signal
+
 from .bandcamp_api import BandcampAPI, BandcampAPIError
 
 

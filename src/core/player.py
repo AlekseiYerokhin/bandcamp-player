@@ -1,6 +1,7 @@
 from typing import Any
-from PySide6.QtCore import QObject, Signal, QTimer
+
 import vlc
+from PySide6.QtCore import QObject, QTimer, Signal
 
 
 class AudioPlayer(QObject):

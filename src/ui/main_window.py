@@ -1,13 +1,26 @@
 import os
-from PySide6.QtWidgets import (
-    QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton,
-    QStackedWidget, QScrollArea, QFrame, QSlider, QLabel, QGridLayout,
-    QSystemTrayIcon, QMenu, QStyle
-)
-from PySide6.QtCore import Qt, Signal, QUrl, QSize
-from PySide6.QtGui import QPixmap, QIcon, QCloseEvent, QAction, QPainter, QColor, QShortcut
-from PySide6.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
+
+from PySide6.QtCore import QSize, Qt, QUrl, Signal
+from PySide6.QtGui import QAction, QCloseEvent, QIcon, QPainter, QPixmap, QShortcut
+from PySide6.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
 from PySide6.QtSvg import QSvgRenderer
+from PySide6.QtWidgets import (
+    QFrame,
+    QGridLayout,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMainWindow,
+    QMenu,
+    QPushButton,
+    QScrollArea,
+    QSlider,
+    QStackedWidget,
+    QStyle,
+    QSystemTrayIcon,
+    QVBoxLayout,
+    QWidget,
+)
 
 _ASSETS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "assets")
 
@@ -554,7 +567,7 @@ class MainWindow(QMainWindow):
         header_btn = QPushButton(f"▼ {result_type.capitalize()}s")
         header_btn.setObjectName("sectionHeader")
         header_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        
+
         grid_widget = QWidget()
         grid = QGridLayout(grid_widget)
         grid.setSpacing(20)
@@ -581,7 +594,7 @@ class MainWindow(QMainWindow):
     def add_album_to_results(self, title, artist, image_url=None, result_type='album'):
         if result_type not in self._search_sections:
             self.add_search_section(result_type)
-        
+
         section = self._search_sections[result_type]
         grid = section['grid']
         row = grid.count() // 3

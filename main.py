@@ -1,9 +1,11 @@
-import sys
 import signal
+import sys
+
+from PySide6.QtCore import QEventLoop, QTimer
 from PySide6.QtWidgets import QApplication
-from PySide6.QtCore import QTimer, QEventLoop
-from src.ui.main_window import MainWindow
+
 from src.core.controller import Controller
+from src.ui.main_window import MainWindow
 
 
 def main():
