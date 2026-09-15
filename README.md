@@ -11,7 +11,7 @@ Search Bandcamp, browse an artist's discography, open an album's tracklist, and 
 
 ## Features
 
-- **Search** artists and albums via Bandcamp's autocomplete API
+- **Search** artists and albums across Bandcamp
 - **Artist pages** with bio, photo, and full discography
 - **Album / track pages** with tracklist, durations, and cover art
 - **Streaming playback** with play/pause, next/previous, seek, and volume
