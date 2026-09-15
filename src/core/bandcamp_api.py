@@ -66,10 +66,11 @@ class BandcampAPI:
             raise BandcampAPIError(str(e)) from e
 
     def tralbum_details(self, band_id, tralbum_id, tralbum_type="a"):
+        code = "t" if tralbum_type in ("t", "track") else "a"
         data = self._get("/mobile/25/tralbum_details", {
             "band_id": band_id,
             "tralbum_id": tralbum_id,
-            "tralbum_type": tralbum_type,
+            "tralbum_type": code,
         })
         return self._normalize_tralbum(data)
 

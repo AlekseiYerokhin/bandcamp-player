@@ -148,6 +148,17 @@ def test_tralbum_details_normalizes_tracks(api, monkeypatch):
     assert album["tracks"][1]["url"] == ""
 
 
+def test_tralbum_details_maps_album_track_type(api, monkeypatch):
+    captured = []
+    _patch_urlopen(monkeypatch, {"title": "X", "art_id": 1, "bandcamp_url": "", "tracks": []}, capture=captured)
+
+    api.tralbum_details(1, 2, "album")
+    assert "tralbum_type=a" in captured[0].full_url
+
+    api.tralbum_details(1, 2, "track")
+    assert "tralbum_type=t" in captured[1].full_url
+
+
 # --- error handling -------------------------------------------------------
 
 def test_api_error_body_raises(api, monkeypatch):
