@@ -306,6 +306,7 @@ class MainWindow(QMainWindow):
         self.tracklist_layout = QVBoxLayout(self.tracklist_container)
         self.tracklist_layout.setSpacing(8)
         self.tracklist_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self._track_items = []
 
         scroll.setWidget(self.tracklist_container)
 
@@ -448,6 +449,9 @@ class MainWindow(QMainWindow):
             }
             #trackItem:hover {
                 background-color: #282828;
+            }
+            #trackItem[active="true"] {
+                background-color: #233a42;
             }
             #sectionHeader {
                 background-color: transparent;
@@ -681,7 +685,26 @@ class MainWindow(QMainWindow):
     def add_track_to_tracklist(self, track_number, title, duration):
         track_widget = self._create_track_item(track_number, title, duration)
         self.tracklist_layout.addWidget(track_widget)
+        self._track_items.append(track_widget)
         return track_widget
+
+    def clear_tracklist(self):
+        while self.tracklist_layout.count():
+            item = self.tracklist_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+        self._track_items = []
+
+    def highlight_track(self, index: int):
+        for i, item in enumerate(self._track_items):
+            active = i == index
+            item.setProperty("active", active)
+            title_label = getattr(item, "_title_label", None)
+            if title_label is not None:
+                color = "#0cacd7" if active else "#ffffff"
+                title_label.setStyleSheet(f"color: {color}; font-size: 14px; background: transparent;")
+            item.style().unpolish(item)
+            item.style().polish(item)
 
     def _create_track_item(self, track_number, title, duration):
         item = QFrame()
@@ -699,6 +722,8 @@ class MainWindow(QMainWindow):
 
         duration_label = QLabel(duration)
         duration_label.setStyleSheet("color: #b3b3b3; font-size: 13px; background: transparent;")
+
+        item._title_label = title_label
 
         layout.addWidget(number_label)
         layout.addWidget(title_label, 1)

@@ -116,10 +116,7 @@ class Controller(QObject):
         if art_id:
             self.window.set_album_cover(BandcampAPI.image_url(art_id))
 
-        while self.window.tracklist_layout.count():
-            item = self.window.tracklist_layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
+        self.window.clear_tracklist()
 
         self._tracks = []
         track_list = data.get('tracks', [])
@@ -172,6 +169,7 @@ class Controller(QObject):
 
             self.player.load_and_play(track['url'])
             self.window.set_current_track(track['title'])
+            self.window.highlight_track(index)
 
     def _go_back_to_artist(self):
         self.window.show_artist_discography()
