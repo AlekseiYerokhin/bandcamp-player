@@ -112,6 +112,47 @@ in-memory per-album cache since tokens are valid for a window.
   is isolated in `controller.py` and covered by the existing headless
   end-to-end verification pattern.
 
+## Windows installer — future track
+
+### Why
+The app is already cross-platform by construction (Qt Widgets + python-vlc +
+stdlib `urllib`), so Windows is a low-cost second platform. A native installer
+(`Bandcamp-Player-Setup-x86_64.exe`) opens the app to a much larger audience,
+and the AppImage already runs under WSL2 as a fallback.
+
+### Takeaways from the Linux/AppImage work
+- **The data layer ports as-is.** `BandcampAPI` is Qt-free and uses only stdlib
+  `urllib`; the Fastly/urllib lesson applies unchanged on Windows.
+- **Playback is the only real porting surface.** python-vlc loads `libvlc` via
+  ctypes on every platform; the work is locating/bundling `libvlc.dll` +
+  `libvlccore.dll` and a trimmed VLC plugin set — the same plugin-selection
+  logic already proven in the AppImage.
+- **Bundler hygiene transfers.** Keep PyInstaller from shadowing the bundled
+  VLC libs, and keep VLC startup quiet (`--no-plugins-cache`,
+  `--ignore-config`) — the `_STRIP_BINARIES` lesson, on Windows.
+- **The UI is already cross-platform.** QtWidgets + `QNetworkAccessManager`
+  (images) + tray icon need no platform-specific code.
+
+### Steps
+1. **Verify from source on Windows.** `pip install -r requirements.txt`, then
+   `python main.py` with system VLC installed (audio via WASAPI/DirectSound).
+2. **Decide VLC bundling.** (a) require system VLC — smallest installer, but
+   users must install VLC; or (b) bundle `libvlc.dll` + a trimmed plugin set —
+   best UX, larger installer.
+3. **Windows PyInstaller spec.** Produce `bandcamp-player.exe` (onedir
+   recommended: faster startup, easier VLC bundling); handle
+   `PYTHON_VLC_LIB_PATH`.
+4. **Wrap in an installer.** Inno Setup (free, scriptable) or NSIS →
+   `Bandcamp-Player-Setup-x86_64.exe` with desktop / start-menu shortcuts.
+5. **CI.** Add a `windows-latest` GitHub Actions job building and attaching the
+   installer to releases — parallel to the existing AppImage job.
+6. **Test.** Clean install, audio on WASAPI, tray icon, fonts; update the
+   README with Windows install instructions.
+
+### Scope note
+Independent of the playlist feature — a parallel track that doesn't change the
+core architecture.
+
 ## Open questions
 
 - JSON file vs SQLite for larger playlists?
