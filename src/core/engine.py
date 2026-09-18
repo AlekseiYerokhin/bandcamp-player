@@ -13,12 +13,15 @@ class BandcampEngine(QObject):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._api = BandcampAPI()
+        self._search_id = 0
 
     def cleanup(self):
         pass
 
     def search(self, query):
-        threading.Thread(target=self._search_worker, args=(query,), daemon=True).start()
+        self._search_id += 1
+        search_id = self._search_id
+        threading.Thread(target=self._search_worker, args=(query, search_id), daemon=True).start()
 
     def get_artist_data(self, band_id):
         threading.Thread(target=self._artist_worker, args=(band_id,), daemon=True).start()
@@ -30,12 +33,16 @@ class BandcampEngine(QObject):
             daemon=True,
         ).start()
 
-    def _search_worker(self, query):
+    def _search_worker(self, query, search_id):
         try:
             results = self._api.search(query)
-            self.search_results_ready.emit(True, results)
         except BandcampAPIError:
-            self.search_results_ready.emit(False, [])
+            results = None
+        if search_id == self._search_id:
+            if results is None:
+                self.search_results_ready.emit(False, [])
+            else:
+                self.search_results_ready.emit(True, results)
 
     def _artist_worker(self, band_id):
         try:

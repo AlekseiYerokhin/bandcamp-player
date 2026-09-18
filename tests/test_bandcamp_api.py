@@ -37,6 +37,21 @@ def _patch_urlopen(monkeypatch, payload=None, error=None, capture=None):
     monkeypatch.setattr(bc.urllib.request, "urlopen", _open)
 
 
+def _patch_urlopen_sequence(monkeypatch, outcomes, capture=None):
+    state = {"i": 0}
+
+    def _open(req, timeout=None):
+        if capture is not None:
+            capture.append(req)
+        outcome = outcomes[min(state["i"], len(outcomes) - 1)]
+        state["i"] += 1
+        if isinstance(outcome, Exception):
+            raise outcome
+        return _FakeResponse(outcome)
+
+    monkeypatch.setattr(bc.urllib.request, "urlopen", _open)
+
+
 # --- search ---------------------------------------------------------------
 
 def test_search_normalizes_artists_albums_and_filters_tracks(api, monkeypatch):
@@ -172,6 +187,30 @@ def test_http_error_raises(api, monkeypatch):
     _patch_urlopen(monkeypatch, error=err)
     with pytest.raises(bc.BandcampAPIError, match="HTTP 404"):
         api.search("x")
+
+
+def test_retry_succeeds_after_transient_5xx(api, monkeypatch):
+    monkeypatch.setattr(bc.time, "sleep", lambda s: None)
+    err = urllib.error.HTTPError("https://bandcamp.com", 503, "Service Unavailable", {}, None)
+    _patch_urlopen_sequence(monkeypatch, [err, {"name": "Chamber", "discography": []}])
+    band = api.band_details(1)
+    assert band["name"] == "Chamber"
+
+
+def test_retry_second_failure_raises_bandcamp_api_error(api, monkeypatch):
+    monkeypatch.setattr(bc.time, "sleep", lambda s: None)
+    err = urllib.error.HTTPError("https://bandcamp.com", 503, "Service Unavailable", {}, None)
+    _patch_urlopen_sequence(monkeypatch, [err, err])
+    with pytest.raises(bc.BandcampAPIError, match="HTTP 503"):
+        api.band_details(1)
+
+
+def test_retry_validates_error_body(api, monkeypatch):
+    monkeypatch.setattr(bc.time, "sleep", lambda s: None)
+    err = urllib.error.HTTPError("https://bandcamp.com", 503, "Service Unavailable", {}, None)
+    _patch_urlopen_sequence(monkeypatch, [err, {"error": True, "error_message": "still broken"}])
+    with pytest.raises(bc.BandcampAPIError, match="still broken"):
+        api.band_details(1)
 
 
 def test_network_error_raises(api, monkeypatch):
