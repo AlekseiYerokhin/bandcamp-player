@@ -54,6 +54,12 @@ class AudioPlayer(QObject):
     def is_playing(self) -> bool:
         return self._player.is_playing()
 
+    def get_length(self) -> int:
+        return self._player.get_length()
+
+    def get_time(self) -> int:
+        return self._player.get_time()
+
     def cleanup(self):
         self.stop()
         self._position_timer.stop()

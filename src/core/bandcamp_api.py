@@ -48,17 +48,19 @@ class BandcampAPI:
 
     def _open(self, req, timeout=15):
         self._throttle()
+        data = self._request_once(req, timeout, attempts=1)
+        if isinstance(data, dict) and data.get("error"):
+            raise BandcampAPIError(data.get("error_message") or "API error")
+        return data
+
+    def _request_once(self, req, timeout, attempts):
         try:
             with urllib.request.urlopen(req, timeout=timeout) as resp:
-                data = json.loads(resp.read().decode())
-            if isinstance(data, dict) and data.get("error"):
-                raise BandcampAPIError(data.get("error_message") or "API error")
-            return data
+                return json.loads(resp.read().decode())
         except urllib.error.HTTPError as e:
-            if e.code in _RETRYABLE_STATUS:
+            if e.code in _RETRYABLE_STATUS and attempts > 0:
                 time.sleep(1.0)
-                with urllib.request.urlopen(req, timeout=timeout) as resp:
-                    return json.loads(resp.read().decode())
+                return self._request_once(req, timeout, attempts - 1)
             raise BandcampAPIError(f"HTTP {e.code}") from e
         except urllib.error.URLError as e:
             raise BandcampAPIError(f"Network error: {e.reason}") from e

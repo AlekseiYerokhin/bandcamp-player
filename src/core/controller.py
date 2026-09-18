@@ -46,6 +46,7 @@ class Controller(QObject):
         self.player.cleanup()
 
     def _on_search_requested(self, query: str):
+        self._last_view = 'search'
         self.window.clear_results()
         self.engine.search(query)
 
@@ -196,7 +197,7 @@ class Controller(QObject):
 
     def _on_position_changed(self, position: int):
         if not self.window.progress_slider.isSliderDown():
-            duration = self.player._player.get_length()
+            duration = self.player.get_length()
             self.window.set_progress(position, duration)
 
     def _on_duration_changed(self, duration: int):
@@ -207,12 +208,12 @@ class Controller(QObject):
         self.window.set_play_state(is_playing)
 
         if not is_playing and self._current_track_index < len(self._tracks) - 1:
-            length = self.player._player.get_length()
-            if length > 0 and self.player._player.get_time() >= length - 500:
+            length = self.player.get_length()
+            if length > 0 and self.player.get_time() >= length - 500:
                 self._on_next_clicked()
 
     def _on_progress_moved(self, position: int):
-        duration = self.player._player.get_length()
+        duration = self.player.get_length()
         new_position = int((position / 100.0) * duration)
         self.player.set_position(new_position)
 
