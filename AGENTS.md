@@ -81,7 +81,16 @@ main.py -> Controller -> BandcampEngine -> BandcampAPI  (data, worker threads)
   `urllib` responses — **no live network calls in tests**.
 - When changing API parsing, update the fixtures in the tests accordingly.
 
-## Branching
+## Git workflow
 
-Feature work happens on branches (e.g. `feat/my-feature`); `main` stays
-releasable. Don't commit build artifacts (`build/`, `dist/`, `*.AppImage`).
+- **Every task gets its own branch.** Start each task on a fresh branch (e.g.
+  `feat/my-feature`); `main` stays releasable and is never worked on directly.
+- **Keep a branch to ~3 commits.** Each branch holds a small, focused set of
+  separate commits — no more than ~3. If a task would need more, split it into
+  separate tasks (each on its own branch). Don't bundle unrelated changes into
+  one commit.
+- **Agree the scope first.** Before starting, confirm with the user what the
+  task is and roughly how it breaks down, so the branch stays focused.
+- **Ask before every commit.** Never commit without the user's explicit
+  approval — even when the change is small or the task was previously agreed.
+- Don't commit build artifacts (`build/`, `dist/`, `*.AppImage`).
