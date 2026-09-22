@@ -376,6 +376,11 @@ class MainWindow(QMainWindow):
             QMainWindow {
                 background-color: #121212;
             }
+            QStatusBar {
+                background-color: #181818;
+                color: #b3b3b3;
+                border-top: 1px solid #282828;
+            }
             #searchFrame {
                 background-color: #181818;
                 border-bottom: 1px solid #282828;
@@ -538,6 +543,9 @@ class MainWindow(QMainWindow):
     def search_finished(self):
         self.search_button.setEnabled(True)
         self.search_button.setText("Search")
+
+    def show_status(self, message: str, timeout_ms: int = 5000):
+        self.statusBar().showMessage(message, timeout_ms)
 
     def show_search_results(self):
         self.search_frame.show()
