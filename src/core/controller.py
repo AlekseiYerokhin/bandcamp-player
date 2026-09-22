@@ -50,11 +50,12 @@ class Controller(QObject):
         self.window.clear_results()
         self.engine.search(query)
 
-    def _on_search_results(self, success: bool, results: list):
+    def _on_search_results(self, success: bool, results: list, error: str = ""):
         self.window.search_finished()
         self.window.clear_results()
 
         if not success:
+            self.window.show_status(error or "Search failed")
             self.window.show_search_results()
             return
 
@@ -99,15 +100,17 @@ class Controller(QObject):
         self._current_band_id = band_id
         self.engine.get_artist_data(band_id)
 
-    def _on_album_data(self, success: bool, data: dict):
+    def _on_album_data(self, success: bool, data: dict, error: str = ""):
         if success:
             self._display_album(data)
+        else:
+            self.window.show_status(error or "Failed to load album")
 
-    def _on_artist_data(self, success: bool, data: dict):
+    def _on_artist_data(self, success: bool, data: dict, error: str = ""):
         if success:
             self._display_artist_discography(data)
         else:
-            self._display_artist_discography({'name': 'Unknown Artist', 'albums': [], 'image_url': ''})
+            self.window.show_status(error or "Failed to load artist")
 
     def _display_album(self, data: dict):
         album_title = data.get('title', 'Unknown Album')
