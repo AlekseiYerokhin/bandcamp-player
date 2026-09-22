@@ -1,5 +1,6 @@
 import os
 
+import shiboken6
 from PySide6.QtCore import QSize, Qt, QUrl, Signal
 from PySide6.QtGui import QAction, QCloseEvent, QIcon, QPainter, QPixmap, QShortcut
 from PySide6.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
@@ -270,6 +271,7 @@ class MainWindow(QMainWindow):
         return card
 
     def clear_discography(self):
+        self._abort_pending_images()
         while self.discography_layout.count():
             item = self.discography_layout.takeAt(0)
             if item.widget():
@@ -542,6 +544,7 @@ class MainWindow(QMainWindow):
         self.stacked_widget.setCurrentWidget(self.search_results_widget)
 
     def clear_results(self):
+        self._abort_pending_images()
         while self.results_layout.count():
             item = self.results_layout.takeAt(0)
             if item is None:
@@ -622,13 +625,18 @@ class MainWindow(QMainWindow):
         reply = self._image_loader.get(request)
         self._pending_images[reply] = (label, size)
 
+    def _abort_pending_images(self):
+        for reply in list(self._pending_images):
+            reply.abort()
+        self._pending_images = {}
+
     def _on_image_loaded(self, reply):
         entry = self._pending_images.pop(reply, None)
         if entry is None:
             reply.deleteLater()
             return
         label, size = entry
-        if reply.error() == QNetworkReply.NetworkError.NoError:
+        if reply.error() == QNetworkReply.NetworkError.NoError and shiboken6.isValid(label):
             data = reply.readAll()
             if data.size() > 0:
                 pixmap = QPixmap()
@@ -689,6 +697,7 @@ class MainWindow(QMainWindow):
         return track_widget
 
     def clear_tracklist(self):
+        self._abort_pending_images()
         while self.tracklist_layout.count():
             item = self.tracklist_layout.takeAt(0)
             if item.widget():
