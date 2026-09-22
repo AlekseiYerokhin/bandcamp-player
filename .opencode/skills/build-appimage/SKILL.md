@@ -46,5 +46,5 @@ After a build, at minimum:
   AppImage.
 - **`AppRun`** sets `VLC_PLUGIN_PATH`, `PYTHON_VLC_LIB_PATH`, and fontconfig
   paths. `--no-plugins-cache` and `--ignore-config` are passed to the VLC
-  instance in `src/core/player.py` to keep startup fast and quiet.
+  instance in `bandcamp_player/core/player.py` to keep startup fast and quiet.
 - **Build artifacts are gitignored** (`build/`, `dist/`, `*.AppImage`).

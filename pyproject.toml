@@ -27,7 +27,7 @@ py-modules = ["main"]
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["src*"]
+include = ["bandcamp_player*"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

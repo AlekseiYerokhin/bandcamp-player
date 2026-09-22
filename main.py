@@ -5,8 +5,8 @@ import sys
 from PySide6.QtCore import QEventLoop, QTimer
 from PySide6.QtWidgets import QApplication
 
-from src.core.controller import Controller
-from src.ui.main_window import MainWindow
+from bandcamp_player.core.controller import Controller
+from bandcamp_player.ui.main_window import MainWindow
 
 
 def main():
