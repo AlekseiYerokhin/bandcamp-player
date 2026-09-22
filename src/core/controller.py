@@ -113,13 +113,14 @@ class Controller(QObject):
         album_title = data.get('title', 'Unknown Album')
         self.window.album_title_label.setText(album_title)
 
+        self.window.clear_tracklist()
+
         art_id = data.get('art_id')
         if art_id:
             self.window.set_album_cover(BandcampAPI.image_url(art_id))
 
-        self.window.clear_tracklist()
-
         self._tracks = []
+        self._current_track_index = -1
         track_list = data.get('tracks', [])
 
         for i, track in enumerate(track_list, 1):
@@ -143,11 +144,11 @@ class Controller(QObject):
         artist_name = data.get('name', 'Unknown Artist')
         self.window.set_artist_name(artist_name)
 
+        self.window.clear_discography()
+
         image_url = data.get('image_url')
         if image_url:
             self.window.set_artist_image(image_url)
-
-        self.window.clear_discography()
 
         band_id = self._current_band_id
         albums = data.get('albums', [])
