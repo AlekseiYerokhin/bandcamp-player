@@ -1,3 +1,4 @@
+import logging
 import signal
 import sys
 
@@ -9,6 +10,10 @@ from src.ui.main_window import MainWindow
 
 
 def main():
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
     app = QApplication(sys.argv)
     window = MainWindow()
     controller = Controller(window)
