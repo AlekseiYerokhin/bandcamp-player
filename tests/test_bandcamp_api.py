@@ -3,7 +3,7 @@ import urllib.error
 
 import pytest
 
-import core.bandcamp_api as bc
+import src.core.bandcamp_api as bc
 
 
 class _FakeResponse:
