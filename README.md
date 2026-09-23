@@ -14,8 +14,9 @@ Search Bandcamp, browse an artist's discography, open an album's tracklist, and 
 - **Search** artists and albums across Bandcamp
 - **Artist pages** with bio, photo, and full discography
 - **Album / track pages** with tracklist, durations, and cover art
-- **Streaming playback** with play/pause, next/previous, seek, and volume
-- **Auto-advance** through an album, with a guard so a failed track never skips the rest
+- **Streaming playback** with play/pause, next/previous, millisecond-accurate seek, volume, and elapsed/total time
+- **Auto-advance** through an album, driven by libVLC end-of-track events (a failed track stops cleanly instead of skipping ahead)
+- **Visible errors** — failures show in a status bar and are written to a log
 - **Back navigation** that remembers whether you came from search or an artist page
 - **Single-file AppImage** — no installation, no system Python required
 
@@ -55,6 +56,7 @@ Search Bandcamp, browse an artist's discography, open an album's tracklist, and 
 - **`urllib`, not `requests`.** Bandcamp fronts its HTML pages with a Fastly JS challenge. The JSON API endpoints are *not* challenged — but `requests` (urllib3) still trips the bot detection, while stdlib `urllib` sails through with identical headers. The client uses `urllib` accordingly.
 - **VLC inside an AppImage.** Bundling `libvlc`, `libvlccore`, and a hand-picked set of plugins (demuxers, decoders, the `es` elementary-stream demux, the `mpegaudio` packetizer, the `gnutls` TLS plugin) so HTTPS streaming works out of the box — no system VLC required.
 - **PyInstaller hygiene.** Excluded bundled `libvlc`/FFmpeg/fontconfig copies that shadowed the AppImage's own libraries, and passed `--no-plugins-cache` / `--ignore-config` to libVLC for deterministic, quiet startup.
+- **Event-driven playback.** Track-end and stream errors come from libVLC events, not a polling timer — pausing near the end of a track no longer skips forward, and a broken stream stops cleanly instead of silently leaving the UI stuck on "playing".
 
 ## Getting started
 
@@ -120,7 +122,7 @@ pip install pytest
 pytest
 ```
 
-The API client is pure and Qt-free, so it is unit-tested with mocked HTTP responses — no network required.
+The API client is pure and Qt-free, so it is unit-tested with mocked HTTP responses — no network required. A subprocess test (`python -S`) enforces that the API client stays importable without Qt.
 
 ## License
 
