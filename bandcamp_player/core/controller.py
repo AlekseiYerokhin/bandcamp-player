@@ -6,12 +6,15 @@ from .player import AudioPlayer
 
 
 class Controller(QObject):
-    def __init__(self, window, parent=None, engine=None, player=None):
+    def __init__(self, window, parent=None, engine=None, player=None, mpris=None):
         super().__init__(parent)
         self.window = window
         self.engine = engine or BandcampEngine()
         self.player = player or AudioPlayer()
+        self.mpris = mpris
         self._current_band_id: int | None = None
+        self._current_album_title = ""
+        self._current_art_url = ""
         self._tracks = []
         self._current_track_index = -1
         self._last_view = 'search'
@@ -38,6 +41,8 @@ class Controller(QObject):
         self.window.next_button.clicked.connect(self._on_next_clicked)
         self.window.volume_slider.valueChanged.connect(self._on_volume_changed)
         self.window.progress_slider.sliderMoved.connect(self._on_progress_moved)
+        if self.mpris is not None:
+            self.mpris.command_requested.connect(self._on_mpris_command)
 
     def _setup_player(self):
         self.player.set_volume(self.window.volume_slider.value())
@@ -117,12 +122,14 @@ class Controller(QObject):
     def _display_album(self, data: dict):
         album_title = data.get('title', 'Unknown Album')
         self.window.album_title_label.setText(album_title)
+        self._current_album_title = album_title
 
         self.window.clear_tracklist()
 
         art_id = data.get('art_id')
+        self._current_art_url = BandcampAPI.image_url(art_id, "16") if art_id else ""
         if art_id:
-            self.window.set_album_cover(BandcampAPI.image_url(art_id, "16"))
+            self.window.set_album_cover(self._current_art_url)
 
         self._tracks = []
         self._current_track_index = -1
@@ -178,6 +185,55 @@ class Controller(QObject):
             self.player.load_and_play(track['url'])
             self.window.set_current_track(track['title'])
             self.window.highlight_track(index)
+            self._mpris_track_changed(index)
+
+    def _mpris_track_changed(self, index: int):
+        if self.mpris is None:
+            return
+        track = self._tracks[index]
+        self.mpris.set_track(
+            track['title'],
+            album=self._current_album_title or "",
+            duration_ms=track.get('duration', 0),
+            art_url=self._current_art_url or "",
+        )
+        self.mpris.set_playback("Playing")
+
+    def _on_mpris_command(self, command: str, arg: int):
+        if command == "play":
+            if self._current_track_index == -1 and self._tracks:
+                self._play_track(0)
+            else:
+                self.player.play()
+                self._set_mpris_playing(True)
+        elif command == "pause":
+            self.player.pause()
+            self._set_mpris_playing(False)
+        elif command == "play_pause":
+            self._on_play_pause_clicked()
+        elif command == "next":
+            self._on_next_clicked()
+        elif command == "previous":
+            self._on_prev_clicked()
+        elif command == "stop":
+            self.player.stop()
+            self._set_mpris_playing(False)
+        elif command == "seek":
+            current = self.player.get_time()
+            self.player.set_position(max(0, current + arg // 1000))
+        elif command == "volume":
+            self.player.set_volume(int(arg * 100))
+            self.window.volume_slider.setValue(int(arg * 100))
+        elif command == "raise":
+            self.window.show()
+            self.window.raise_()
+            self.window.activateWindow()
+        elif command == "quit":
+            self.window.closing.emit()
+
+    def _set_mpris_playing(self, playing: bool):
+        if self.mpris is not None:
+            self.mpris.set_playback("Playing" if playing else "Paused")
 
     def _go_back_to_artist(self):
         self.window.show_artist_discography()
@@ -185,11 +241,13 @@ class Controller(QObject):
     def _on_play_pause_clicked(self):
         if self.player.is_playing():
             self.player.pause()
+            self._set_mpris_playing(False)
         else:
             if self._current_track_index == -1 and self._tracks:
                 self._play_track(0)
             else:
                 self.player.play()
+                self._set_mpris_playing(True)
 
     def _on_prev_clicked(self):
         if self._current_track_index > 0:
@@ -207,6 +265,8 @@ class Controller(QObject):
         if not self.window.progress_slider.isSliderDown():
             self.window.set_progress(position, duration)
         self.window.set_time(position, duration)
+        if self.mpris is not None:
+            self.mpris.set_position_ms(position)
 
     def _on_playback_state_changed(self, state):
         is_playing = state == 1
@@ -217,10 +277,14 @@ class Controller(QObject):
             self._on_next_clicked()
         else:
             self.window.set_play_state(False)
+            if self.mpris is not None:
+                self.mpris.set_playback("Stopped")
 
     def _on_playback_error(self):
         self.window.set_play_state(False)
         self.window.show_status("Playback error")
+        if self.mpris is not None:
+            self.mpris.set_playback("Stopped")
 
     def _on_progress_moved(self, position: int):
         self.player.set_position(position)
