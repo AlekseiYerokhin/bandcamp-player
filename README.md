@@ -7,6 +7,10 @@ Search Bandcamp, browse an artist's discography, open an album's tracklist, and 
 > [!NOTE]
 > Bandcamp has no public content API, so this app talks to the same undocumented JSON endpoints the official mobile apps use. No scraping, no embedded browser.
 
+<p align="center">
+  <img src="docs/screenshot-album.png" alt="Bandcamp Player — album view" width="640">
+</p>
+
 ---
 
 ## Features
