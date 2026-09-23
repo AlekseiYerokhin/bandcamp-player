@@ -2,7 +2,7 @@ import logging
 import signal
 import sys
 
-from PySide6.QtCore import QEventLoop, QTimer
+from PySide6.QtCore import QCoreApplication, QEventLoop, QTimer
 from PySide6.QtWidgets import QApplication
 
 from bandcamp_player.core.controller import Controller
@@ -15,6 +15,8 @@ def main():
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
     app = QApplication(sys.argv)
+    QCoreApplication.setOrganizationName("bandcamp-player")
+    QCoreApplication.setApplicationName("bandcamp-player")
     window = MainWindow()
     controller = Controller(window)
     window.show()

@@ -1,8 +1,8 @@
 import os
 
 import shiboken6
-from PySide6.QtCore import QSize, Qt, QUrl, Signal
-from PySide6.QtGui import QAction, QCloseEvent, QIcon, QPainter, QPixmap, QShortcut
+from PySide6.QtCore import QSettings, QSize, Qt, QUrl, Signal
+from PySide6.QtGui import QAction, QCloseEvent, QIcon, QKeySequence, QPainter, QPixmap, QShortcut
 from PySide6.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
 from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import (
@@ -101,9 +101,29 @@ class MainWindow(QMainWindow):
         self._pending_images = {}
         self._setup_ui()
         self._apply_styles()
+        self._load_settings()
         self._setup_tray()
 
+    def _load_settings(self):
+        settings = QSettings()
+        self.volume_slider.setValue(int(settings.value("volume", 70)))
+        size = settings.value("window/size")
+        pos = settings.value("window/pos")
+        if size is not None:
+            self.resize(size)
+        if pos is not None:
+            self.move(pos)
+
+    def _save_settings(self):
+        settings = QSettings()
+        settings.setValue("volume", self.volume_slider.value())
+        settings.setValue("window/size", self.size())
+        settings.setValue("window/pos", self.pos())
+
     def _setup_tray(self):
+        if not QSystemTrayIcon.isSystemTrayAvailable():
+            self._tray_icon = None
+            return
         icon_path = os.path.join(_ASSETS_DIR, "icon.png")
         icon = QIcon(icon_path) if os.path.exists(icon_path) else self.style().standardIcon(QStyle.StandardPixmap.SP_ComputerIcon)
 
@@ -132,16 +152,19 @@ class MainWindow(QMainWindow):
         self.activateWindow()
 
     def _quit_app(self):
+        self._save_settings()
         self.closing.emit()
-        self._tray_icon.hide()
+        if self._tray_icon is not None:
+            self._tray_icon.hide()
         from PySide6.QtWidgets import QApplication
         QApplication.quit()
 
     def closeEvent(self, event: QCloseEvent):
-        if self._tray_icon.isVisible():
+        if self._tray_icon is not None and self._tray_icon.isVisible():
             self.hide()
             event.ignore()
             return
+        self._save_settings()
         self.closing.emit()
         super().closeEvent(event)
 
@@ -156,13 +179,17 @@ class MainWindow(QMainWindow):
         self._setup_central_area(main_layout)
         self._setup_player_bar(main_layout)
 
-        self._vol_up_shortcut = QShortcut("Up", self)
+        self._vol_up_shortcut = QShortcut("Ctrl+Up", self)
         self._vol_up_shortcut.setContext(Qt.ShortcutContext.ApplicationShortcut)
         self._vol_up_shortcut.activated.connect(lambda: self.volume_slider.setValue(min(100, self.volume_slider.value() + 5)))
 
-        self._vol_down_shortcut = QShortcut("Down", self)
+        self._vol_down_shortcut = QShortcut("Ctrl+Down", self)
         self._vol_down_shortcut.setContext(Qt.ShortcutContext.ApplicationShortcut)
         self._vol_down_shortcut.activated.connect(lambda: self.volume_slider.setValue(max(0, self.volume_slider.value() - 5)))
+
+        self._play_pause_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Space), self)
+        self._play_pause_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
+        self._play_pause_shortcut.activated.connect(self.play_pause_button.animateClick)
 
     def _setup_search_bar(self, parent_layout):
         self.search_frame = QFrame()
@@ -260,7 +287,6 @@ class MainWindow(QMainWindow):
         return widget
 
     def show_artist_discography(self):
-        self.search_frame.hide()
         self.stacked_widget.setCurrentWidget(self.artist_discography_widget)
 
     def set_artist_name(self, name):
@@ -580,7 +606,6 @@ class MainWindow(QMainWindow):
         self._search_sections = {}
 
     def show_tracklist(self, back_callback=None):
-        self.search_frame.hide()
         self.stacked_widget.setCurrentWidget(self.tracklist_widget)
         if back_callback:
             try:
