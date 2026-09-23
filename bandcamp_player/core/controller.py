@@ -85,7 +85,8 @@ class Controller(QObject):
                 result_type
             )
             if card:
-                card.mousePressEvent = lambda e, b=result['band_id'], i=result['id'], rtype=result_type: self._on_result_clicked(b, i, rtype)
+                card.set_click_data(result['band_id'], result['id'], result_type)
+                card.clicked.connect(self._on_result_clicked)
 
     def _on_result_clicked(self, band_id, item_id, result_type):
         if result_type == 'album':
@@ -121,7 +122,7 @@ class Controller(QObject):
 
         art_id = data.get('art_id')
         if art_id:
-            self.window.set_album_cover(BandcampAPI.image_url(art_id))
+            self.window.set_album_cover(BandcampAPI.image_url(art_id, "16"))
 
         self._tracks = []
         self._current_track_index = -1
@@ -139,7 +140,7 @@ class Controller(QObject):
             })
 
             track_widget = self.window.add_track_to_tracklist(i, title, duration_str)
-            track_widget.mousePressEvent = lambda e, idx=i-1: self._play_track(idx)
+            track_widget.clicked.connect(self._play_track)
 
         back_callback = self._go_back_to_artist if self._last_view == 'artist' else self.window.show_search_results
         self.window.show_tracklist(back_callback)
@@ -163,7 +164,8 @@ class Controller(QObject):
 
             card = self.window.add_discography_album(title, album_image, album_type)
             if card and album.get('item_id'):
-                card.mousePressEvent = lambda e, bid=band_id, iid=album['item_id'], itype=album_type: self._on_album_clicked(bid, iid, itype)
+                card.set_click_data(band_id, album['item_id'], album_type)
+                card.clicked.connect(self._on_album_clicked)
 
         self._last_view = 'artist'
         self.window.show_artist_discography()

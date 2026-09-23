@@ -125,7 +125,7 @@ class BandcampAPI:
                 "title": item.get("title", "Unknown"),
                 "item_id": item.get("item_id"),
                 "item_type": item.get("item_type", "album"),
-                "image_url": BandcampAPI.image_url(item.get("art_id")),
+                "image_url": BandcampAPI.image_url(item.get("art_id"), "9"),
                 "release_date": item.get("release_date", ""),
             })
         return {
@@ -157,7 +157,7 @@ class BandcampAPI:
                     "artist": item.get("band_name") or "",
                     "band_id": item.get("band_id"),
                     "id": item.get("id"),
-                    "image_url": BandcampAPI.image_url(item.get("art_id")),
+                    "image_url": BandcampAPI.image_url(item.get("art_id"), "9"),
                     "url": item.get("url", ""),
                 })
             elif item_type == "t" and include_tracks:
@@ -167,7 +167,7 @@ class BandcampAPI:
                     "artist": item.get("band_name") or "",
                     "band_id": item.get("band_id"),
                     "id": item.get("id"),
-                    "image_url": BandcampAPI.image_url(item.get("art_id")),
+                    "image_url": BandcampAPI.image_url(item.get("art_id"), "9"),
                     "url": item.get("url", ""),
                 })
         return results
