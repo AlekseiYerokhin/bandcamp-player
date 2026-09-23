@@ -76,7 +76,7 @@ def test_search_normalizes_artists_albums_and_filters_tracks(api, monkeypatch):
     assert artist["artist"] == "Nashville, Tennessee"
     assert album["title"] == "Tears of Joy"
     assert album["band_id"] == 4199458029 and album["id"] == 2242839143
-    assert album["image_url"] == "https://f4.bcbits.com/img/a4171759085_10.jpg"
+    assert album["image_url"] == "https://f4.bcbits.com/img/a4171759085_9.jpg"
 
 
 def test_search_handles_missing_location(api, monkeypatch):
@@ -127,7 +127,7 @@ def test_band_details_normalizes_discography(api, monkeypatch):
     first = band["albums"][0]
     assert first["item_id"] == 2242839143
     assert first["item_type"] == "album"
-    assert first["image_url"] == "https://f4.bcbits.com/img/a4171759085_10.jpg"
+    assert first["image_url"] == "https://f4.bcbits.com/img/a4171759085_9.jpg"
 
 
 def test_band_details_uses_post(api, monkeypatch):
