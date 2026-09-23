@@ -6,11 +6,11 @@ from .player import AudioPlayer
 
 
 class Controller(QObject):
-    def __init__(self, window, parent=None):
+    def __init__(self, window, parent=None, engine=None, player=None):
         super().__init__(parent)
         self.window = window
-        self.engine = BandcampEngine()
-        self.player = AudioPlayer()
+        self.engine = engine or BandcampEngine()
+        self.player = player or AudioPlayer()
         self._current_band_id: int | None = None
         self._tracks = []
         self._current_track_index = -1
