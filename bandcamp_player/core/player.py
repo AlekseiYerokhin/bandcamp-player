@@ -6,8 +6,9 @@ from PySide6.QtCore import QObject, QTimer, Signal
 
 class AudioPlayer(QObject):
     position_changed = Signal(int)
-    duration_changed = Signal(int)
     playback_state_changed = Signal(int)
+    track_ended = Signal()
+    playback_error = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -18,6 +19,10 @@ class AudioPlayer(QObject):
         self._position_timer = QTimer(self)
         self._position_timer.setInterval(500)
         self._position_timer.timeout.connect(self._update_position)
+
+        event_manager = self._player.event_manager()
+        event_manager.event_attach(vlc.EventType.MediaPlayerEndReached, self._on_end_reached)
+        event_manager.event_attach(vlc.EventType.MediaPlayerEncounteredError, self._on_error)
 
     def load_and_play(self, stream_url: str):
         media = self._instance.media_new(stream_url)
@@ -65,12 +70,10 @@ class AudioPlayer(QObject):
         self._position_timer.stop()
 
     def _update_position(self):
-        position = self._player.get_time()
-        duration = self._player.get_length()
+        self.position_changed.emit(self._player.get_time())
 
-        self.position_changed.emit(position)
-        self.duration_changed.emit(duration)
+    def _on_end_reached(self, event):
+        self.track_ended.emit()
 
-        if self._player.get_state() == vlc.State.Ended:  # type: ignore[reportAttributeAccessIssue]
-            self._position_timer.stop()
-            self.playback_state_changed.emit(0)
+    def _on_error(self, event):
+        self.playback_error.emit()
