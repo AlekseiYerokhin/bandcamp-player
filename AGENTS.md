@@ -78,6 +78,25 @@ main.py -> Controller -> BandcampEngine -> BandcampAPI  (data, worker threads)
   referer-tolerant). No referer logic is needed.
 - **Search has no pagination** (autocomplete, ≤50 best-match results) — there is
   no "Load More".
+- **`Signal(int, ...)` is a 32-bit C++ int.** Bandcamp IDs (e.g.
+  `tralbum_id` 4199458029) overflow it. Use `Signal('qint64')` for any signal
+  carrying an ID.
+- **Never touch `QTimer` or widgets from non-GUI threads** (engine worker,
+  libVLC event callbacks, the MPRIS asyncio thread). Marshal back to the GUI
+  via Qt signals (queued connection); queued signals only deliver while the
+  GUI thread runs `app.exec()`.
+- **Guard async UI updates against deleted C++ objects.** After an async
+  image load or worker result, check `shiboken6.isValid(obj)` before touching
+  the widget, and abort in-flight loads when a view is cleared.
+  `QPointer` is **not** importable from `PySide6.QtCore`.
+- **dbus-next MPRIS service** (`bandcamp_player/mpris.py`) must call
+  `loop.run_forever()` after registering the name, or nothing is ever served.
+  Read-only properties need `access=PropertyAccess.READ`; the D-Bus signature
+  strings need a module-level `# ruff: noqa: F821, F722`; `Position` is in
+  microseconds.
+- **CI AppImage builds must install all runtime Python deps** (missing
+  `dbus-next` caused a `ModuleNotFoundError` at AppImage launch). Keep GitHub
+  Actions runtimes current (Node 24+).
 
 ## Testing
 
