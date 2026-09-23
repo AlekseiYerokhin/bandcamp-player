@@ -1,3 +1,4 @@
+import contextlib
 import os
 
 import shiboken6
@@ -452,10 +453,8 @@ class MainWindow(QMainWindow):
     def show_tracklist(self, back_callback=None):
         self.stacked_widget.setCurrentWidget(self.tracklist_widget)
         if back_callback:
-            try:
+            with contextlib.suppress(RuntimeError):
                 self.back_button.clicked.disconnect()
-            except RuntimeError:
-                pass
             self.back_button.clicked.connect(back_callback)
 
     def add_search_section(self, result_type: str):
