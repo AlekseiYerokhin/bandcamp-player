@@ -8,7 +8,7 @@ pytest.importorskip("PySide6.QtCore")
 def test_stale_search_response_is_dropped(monkeypatch):
     from PySide6.QtCore import QCoreApplication
 
-    from core.engine import BandcampEngine
+    from bandcamp_player.core.engine import BandcampEngine
 
     app = QCoreApplication.instance() or QCoreApplication([])
     engine = BandcampEngine()
@@ -37,7 +37,7 @@ def test_stale_search_response_is_dropped(monkeypatch):
 def test_stale_album_response_is_dropped(monkeypatch):
     from PySide6.QtCore import QCoreApplication
 
-    from core.engine import BandcampEngine
+    from bandcamp_player.core.engine import BandcampEngine
 
     app = QCoreApplication.instance() or QCoreApplication([])
     engine = BandcampEngine()
@@ -66,8 +66,8 @@ def test_stale_album_response_is_dropped(monkeypatch):
 def test_search_failure_carries_error_message(monkeypatch):
     from PySide6.QtCore import QCoreApplication
 
-    from core.bandcamp_api import BandcampAPIError
-    from core.engine import BandcampEngine
+    from bandcamp_player.core.bandcamp_api import BandcampAPIError
+    from bandcamp_player.core.engine import BandcampEngine
 
     app = QCoreApplication.instance() or QCoreApplication([])
     engine = BandcampEngine()

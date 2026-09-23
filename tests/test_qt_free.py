@@ -11,11 +11,11 @@ def test_bandcamp_api_imports_without_qt():
     the chain would fail. Ensures the "Qt-free, unit-testable" invariant holds.
     """
     repo_root = pathlib.Path(__file__).resolve().parent.parent
-    code = "import core.bandcamp_api; print('OK')"
+    code = "import bandcamp_player.core.bandcamp_api; print('OK')"
     result = subprocess.run(
         [sys.executable, "-S", "-c", code],
         cwd=repo_root,
-        env={**dict(os.environ), "PYTHONPATH": str(repo_root / "src")},
+        env={**dict(os.environ), "PYTHONPATH": str(repo_root)},
         capture_output=True,
         text=True,
         timeout=30,

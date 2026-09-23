@@ -37,16 +37,16 @@ main.py -> Controller -> BandcampEngine -> BandcampAPI  (data, worker threads)
          MainWindow  <- Qt signals
 ```
 
-- `src/core/bandcamp_api.py` — **pure, Qt-free** API client. All HTTP lives
+- `bandcamp_player/core/bandcamp_api.py` — **pure, Qt-free** API client. All HTTP lives
   here. Functions: `search`, `band_details`, `tralbum_details`; normalizers
   return plain dicts. Raises `BandcampAPIError` on any failure.
-- `src/core/engine.py` — `QObject`; runs each API call on a daemon thread and
+- `bandcamp_player/core/engine.py` — `QObject`; runs each API call on a daemon thread and
   emits `search_results_ready` / `album_data_ready` / `artist_data_ready`
   (`bool, payload`). Never block the GUI thread here.
-- `src/core/controller.py` — wires UI events to engine/player; owns navigation
+- `bandcamp_player/core/controller.py` — wires UI events to engine/player; owns navigation
   state (`_last_view`, `_current_band_id`, `_tracks`).
-- `src/core/player.py` — thin libVLC wrapper.
-- `src/ui/main_window.py` — the entire UI (cards, sections, tracklist, player bar).
+- `bandcamp_player/core/player.py` — thin libVLC wrapper.
+- `bandcamp_player/ui/main_window.py` — the entire UI (cards, sections, tracklist, player bar).
 
 ## Conventions
 
@@ -70,6 +70,10 @@ main.py -> Controller -> BandcampEngine -> BandcampAPI  (data, worker threads)
 - **`bandcamp.spec` `_STRIP_BINARIES`** removes bundled `libvlc`/FFmpeg/
   fontconfig copies so they don't shadow the AppImage's own libraries. Don't
   remove it without testing playback in the built AppImage.
+- **`build/` is shared by setuptools and the AppImage script.** `pip wheel`
+  stages into `build/lib`; if a stale `build/lib` survives a package rename,
+  it leaks the old package into the wheel. Clean `build/lib` (or run the
+  AppImage script, which wipes `build/`) before building a wheel.
 - **Stream URLs play without a Referer** (mobile `streaming_url` is
   referer-tolerant). No referer logic is needed.
 - **Search has no pagination** (autocomplete, ≤50 best-match results) — there is

@@ -43,11 +43,11 @@ Search Bandcamp, browse an artist's discography, open an album's tracklist, and 
                                 └──────────────┘                    └────────────────┘
 ```
 
-- `src/core/bandcamp_api.py` — pure, Qt-free API client (search, artist, album), with retry + throttling
-- `src/core/engine.py` — `QObject` that runs API calls on daemon threads and emits Qt signals
-- `src/core/controller.py` — wires UI events to the engine and player; owns navigation state
-- `src/core/player.py` — libVLC wrapper
-- `src/ui/main_window.py` — the entire UI
+- `bandcamp_player/core/bandcamp_api.py` — pure, Qt-free API client (search, artist, album), with retry + throttling
+- `bandcamp_player/core/engine.py` — `QObject` that runs API calls on daemon threads and emits Qt signals
+- `bandcamp_player/core/controller.py` — wires UI events to the engine and player; owns navigation state
+- `bandcamp_player/core/player.py` — libVLC wrapper
+- `bandcamp_player/ui/main_window.py` — the entire UI
 
 ## Engineering highlights
 
@@ -97,7 +97,7 @@ The script runs PyInstaller, assembles an AppDir (bundling VLC libraries and plu
 
 ```
 ├── main.py                      # entry point
-├── src/
+├── bandcamp_player/
 │   ├── core/
 │   │   ├── bandcamp_api.py      # Qt-free Bandcamp API client
 │   │   ├── engine.py            # threaded data engine (Qt signals)
