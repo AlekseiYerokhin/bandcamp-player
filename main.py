@@ -6,6 +6,7 @@ from PySide6.QtCore import QCoreApplication, QEventLoop, QTimer
 from PySide6.QtWidgets import QApplication
 
 from bandcamp_player.core.controller import Controller
+from bandcamp_player.mpris import MprisService
 from bandcamp_player.ui.main_window import MainWindow
 
 
@@ -17,8 +18,10 @@ def main():
     app = QApplication(sys.argv)
     QCoreApplication.setOrganizationName("bandcamp-player")
     QCoreApplication.setApplicationName("bandcamp-player")
+    mpris = MprisService()
+    mpris.start()
     window = MainWindow()
-    controller = Controller(window)
+    controller = Controller(window, mpris=mpris)
     window.show()
     window.raise_()
     window.activateWindow()
