@@ -41,6 +41,7 @@ class Controller(QObject):
         self.window.next_button.clicked.connect(self._on_next_clicked)
         self.window.volume_slider.valueChanged.connect(self._on_volume_changed)
         self.window.progress_slider.sliderMoved.connect(self._on_progress_moved)
+        self.window.seek_requested.connect(self._on_seek_requested)
         if self.mpris is not None:
             self.mpris.command_requested.connect(self._on_mpris_command)
 
@@ -288,6 +289,10 @@ class Controller(QObject):
 
     def _on_progress_moved(self, position: int):
         self.player.set_position(position)
+
+    def _on_seek_requested(self, offset_ms: int):
+        current = self.player.get_time()
+        self.player.set_position(max(0, current + offset_ms))
 
     def _format_duration(self, ms: int) -> str:
         seconds = ms // 1000
