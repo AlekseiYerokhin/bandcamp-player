@@ -4,6 +4,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from typing import ClassVar
 
 _RETRYABLE_STATUS = (429, 500, 502, 503, 504)
 
@@ -14,7 +15,7 @@ class BandcampAPIError(Exception):
 
 class BandcampAPI:
     BASE_URL = "https://bandcamp.com/api"
-    HEADERS = {
+    HEADERS: ClassVar[dict[str, str]] = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
         "Accept": "application/json",
     }
