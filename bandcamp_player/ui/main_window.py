@@ -89,6 +89,8 @@ class IconButton(QPushButton):
 class MainWindow(QMainWindow):
     search_requested = Signal(str)
 
+    seek_requested = Signal(int)
+
     closing = Signal()
 
     def __init__(self):
@@ -194,6 +196,14 @@ class MainWindow(QMainWindow):
         self._play_pause_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Space), self)
         self._play_pause_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
         self._play_pause_shortcut.activated.connect(self.play_pause_button.animateClick)
+
+        self._seek_fwd_shortcut = QShortcut("Ctrl+Right", self)
+        self._seek_fwd_shortcut.setContext(Qt.ShortcutContext.ApplicationShortcut)
+        self._seek_fwd_shortcut.activated.connect(lambda: self.seek_requested.emit(5000))
+
+        self._seek_back_shortcut = QShortcut("Ctrl+Left", self)
+        self._seek_back_shortcut.setContext(Qt.ShortcutContext.ApplicationShortcut)
+        self._seek_back_shortcut.activated.connect(lambda: self.seek_requested.emit(-5000))
 
     def _setup_search_bar(self, parent_layout):
         self.search_frame = QFrame()

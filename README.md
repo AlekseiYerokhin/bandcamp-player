@@ -19,6 +19,7 @@ Search Bandcamp, browse an artist's discography, open an album's tracklist, and 
 - **Artist pages** with bio, photo, and full discography
 - **Album / track pages** with tracklist, durations, and cover art
 - **Streaming playback** with play/pause, next/previous, millisecond-accurate seek, volume, and elapsed/total time
+- **Keyboard shortcuts** — `Space` play/pause, `Ctrl+Up`/`Ctrl+Down` volume, `Ctrl+Right`/`Ctrl+Left` seek ±5s
 - **Auto-advance** through an album, driven by libVLC end-of-track events (a failed track stops cleanly instead of skipping ahead)
 - **Visible errors** — failures show in a status bar and are written to a log
 - **MPRIS integration** — system media keys and desktop playback controls (Linux)
