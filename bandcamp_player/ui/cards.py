@@ -5,7 +5,8 @@ from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout
 class AlbumCard(QFrame):
     """A clickable album/artist card that emits its identity on click."""
 
-    clicked = Signal(int, int, str)  # band_id, item_id, item_type
+    # qint64: Bandcamp ids exceed signed 32-bit int (Signal(int) would overflow)
+    clicked = Signal('qint64', 'qint64', str)  # band_id, item_id, item_type
 
     def __init__(self, title, artist="", image_url=None, parent=None):
         super().__init__(parent)
