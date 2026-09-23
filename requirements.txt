@@ -1,3 +1,3 @@
-PySide6
-python-vlc
-dbus-next
+PySide6==6.11.1
+python-vlc==3.0.21203
+dbus-next==0.2.3
