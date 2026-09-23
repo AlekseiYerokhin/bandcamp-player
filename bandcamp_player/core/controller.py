@@ -29,8 +29,9 @@ class Controller(QObject):
         self.engine.artist_data_ready.connect(self._on_artist_data)
 
         self.player.position_changed.connect(self._on_position_changed)
-        self.player.duration_changed.connect(self._on_duration_changed)
         self.player.playback_state_changed.connect(self._on_playback_state_changed)
+        self.player.track_ended.connect(self._on_track_ended)
+        self.player.playback_error.connect(self._on_playback_error)
 
         self.window.play_pause_button.clicked.connect(self._on_play_pause_clicked)
         self.window.prev_button.clicked.connect(self._on_prev_clicked)
@@ -200,26 +201,27 @@ class Controller(QObject):
         self.player.set_volume(value)
 
     def _on_position_changed(self, position: int):
+        duration = self.player.get_length()
         if not self.window.progress_slider.isSliderDown():
-            duration = self.player.get_length()
             self.window.set_progress(position, duration)
-
-    def _on_duration_changed(self, duration: int):
-        pass
+        self.window.set_time(position, duration)
 
     def _on_playback_state_changed(self, state):
         is_playing = state == 1
         self.window.set_play_state(is_playing)
 
-        if not is_playing and self._current_track_index < len(self._tracks) - 1:
-            length = self.player.get_length()
-            if length > 0 and self.player.get_time() >= length - 500:
-                self._on_next_clicked()
+    def _on_track_ended(self):
+        if self._current_track_index < len(self._tracks) - 1:
+            self._on_next_clicked()
+        else:
+            self.window.set_play_state(False)
+
+    def _on_playback_error(self):
+        self.window.set_play_state(False)
+        self.window.show_status("Playback error")
 
     def _on_progress_moved(self, position: int):
-        duration = self.player.get_length()
-        new_position = int((position / 100.0) * duration)
-        self.player.set_position(new_position)
+        self.player.set_position(position)
 
     def _format_duration(self, ms: int) -> str:
         seconds = ms // 1000
