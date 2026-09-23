@@ -17,6 +17,7 @@ Search Bandcamp, browse an artist's discography, open an album's tracklist, and 
 - **Streaming playback** with play/pause, next/previous, millisecond-accurate seek, volume, and elapsed/total time
 - **Auto-advance** through an album, driven by libVLC end-of-track events (a failed track stops cleanly instead of skipping ahead)
 - **Visible errors** — failures show in a status bar and are written to a log
+- **MPRIS integration** — system media keys and desktop playback controls (Linux)
 - **Back navigation** that remembers whether you came from search or an artist page
 - **Single-file AppImage** — no installation, no system Python required
 
@@ -57,6 +58,7 @@ Search Bandcamp, browse an artist's discography, open an album's tracklist, and 
 - **VLC inside an AppImage.** Bundling `libvlc`, `libvlccore`, and a hand-picked set of plugins (demuxers, decoders, the `es` elementary-stream demux, the `mpegaudio` packetizer, the `gnutls` TLS plugin) so HTTPS streaming works out of the box — no system VLC required.
 - **PyInstaller hygiene.** Excluded bundled `libvlc`/FFmpeg/fontconfig copies that shadowed the AppImage's own libraries, and passed `--no-plugins-cache` / `--ignore-config` to libVLC for deterministic, quiet startup.
 - **Event-driven playback.** Track-end and stream errors come from libVLC events, not a polling timer — pausing near the end of a track no longer skips forward, and a broken stream stops cleanly instead of silently leaving the UI stuck on "playing".
+- **MPRIS on the session bus.** The player registers an `org.mpris.MediaPlayer2` service via `dbus-next` in a background asyncio thread, so system media keys and desktop applets control playback and show now-playing metadata.
 
 ## Getting started
 
