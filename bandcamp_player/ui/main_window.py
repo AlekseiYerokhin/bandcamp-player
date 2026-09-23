@@ -26,6 +26,13 @@ from PySide6.QtWidgets import (
 _ASSETS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "assets")
 
 
+def _format_ms(ms: int) -> str:
+    seconds = ms // 1000
+    minutes = seconds // 60
+    seconds %= 60
+    return f"{minutes}:{seconds:02d}"
+
+
 _SVG_PREV = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect x="4" y="5" width="2.5" height="14" fill="{c}"/><polygon points="19,5 8,12 19,19" fill="{c}"/></svg>'
 _SVG_NEXT = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><polygon points="5,5 16,12 5,19" fill="{c}"/><rect x="17.5" y="5" width="2.5" height="14" fill="{c}"/></svg>'
 _SVG_PLAY = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><polygon points="7,4 20,12 7,20" fill="{c}"/></svg>'
@@ -344,9 +351,15 @@ class MainWindow(QMainWindow):
         self.progress_slider = QSlider(Qt.Orientation.Horizontal)
         self.progress_slider.setObjectName("progressSlider")
         self.progress_slider.setMinimum(0)
-        self.progress_slider.setMaximum(100)
+        self.progress_slider.setMaximum(0)
+        self.time_label = QLabel("0:00 / 0:00")
+        self.time_label.setObjectName("timeLabel")
+        slider_row = QHBoxLayout()
+        slider_row.setSpacing(8)
+        slider_row.addWidget(self.progress_slider, 1)
+        slider_row.addWidget(self.time_label)
         self.track_info_layout.addWidget(self.current_track_label)
-        self.track_info_layout.addWidget(self.progress_slider)
+        self.track_info_layout.addLayout(slider_row)
 
         self.volume_layout = QHBoxLayout()
         self.volume_layout.setSpacing(8)
@@ -496,6 +509,10 @@ class MainWindow(QMainWindow):
             #trackLabel {
                 color: #ffffff;
                 font-size: 13px;
+            }
+            #timeLabel {
+                color: #b3b3b3;
+                font-size: 12px;
             }
             #progressSlider::groove:horizontal {
                 background: #4d4d4d;
@@ -756,7 +773,11 @@ class MainWindow(QMainWindow):
 
     def set_progress(self, position: int, duration: int):
         if duration > 0:
-            self.progress_slider.setValue(int((position / duration) * 100))
+            self.progress_slider.setRange(0, duration)
+            self.progress_slider.setValue(position)
+
+    def set_time(self, position: int, duration: int):
+        self.time_label.setText(f"{_format_ms(position)} / {_format_ms(duration)}")
 
     def _update_volume_icon(self, value):
         if value == 0:
