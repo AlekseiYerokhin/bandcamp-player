@@ -23,6 +23,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from bandcamp_player.ui import theme
+from bandcamp_player.ui.cards import AlbumCard, TrackRow
+
 _ASSETS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "assets")
 
 
@@ -299,7 +302,9 @@ class MainWindow(QMainWindow):
     def add_discography_album(self, title, image_url=None, album_type='album'):
         row = self.discography_layout.count() // 3
         col = self.discography_layout.count() % 3
-        card = self._create_album_card(title, '', image_url)
+        card = AlbumCard(title, image_url=image_url)
+        if image_url:
+            self._load_image(image_url, card.cover_label, 176)
         self.discography_layout.addWidget(card, row, col)
         return card
 
@@ -411,168 +416,7 @@ class MainWindow(QMainWindow):
         parent_layout.addWidget(player_bar)
 
     def _apply_styles(self):
-        self.setStyleSheet("""
-            QMainWindow {
-                background-color: #121212;
-            }
-            QStatusBar {
-                background-color: #181818;
-                color: #b3b3b3;
-                border-top: 1px solid #282828;
-            }
-            #searchFrame {
-                background-color: #181818;
-                border-bottom: 1px solid #282828;
-            }
-            #searchInput {
-                background-color: #2a2a2a;
-                color: #ffffff;
-                border: 1px solid #3a3a3a;
-                border-radius: 20px;
-                padding: 8px 15px;
-                font-size: 14px;
-            }
-            #searchInput:focus {
-                border: 1px solid #0cacd7;
-            }
-            #searchButton {
-                background-color: #0cacd7;
-                color: #ffffff;
-                border: none;
-                border-radius: 20px;
-                padding: 8px 25px;
-                font-size: 14px;
-                font-weight: bold;
-            }
-            #searchButton:hover {
-                background-color: #2ec4e0;
-            }
-            #searchButton:pressed {
-                background-color: #0a98be;
-            }
-            #centralStack {
-                background-color: #121212;
-                color: #ffffff;
-            }
-            #resultsScroll, #tracklistScroll, #discographyScroll {
-                background-color: #121212;
-                border: none;
-                color: #ffffff;
-            }
-            #resultsContainer {
-                background-color: #121212;
-                color: #ffffff;
-            }
-            #tracklistContainer {
-                background-color: #121212;
-                color: #ffffff;
-            }
-            #albumTitle {
-                color: #ffffff;
-                font-size: 24px;
-                font-weight: bold;
-            }
-            #artistName {
-                color: #ffffff;
-                font-size: 24px;
-                font-weight: bold;
-            }
-            #backButton {
-                background-color: transparent;
-                color: #b3b3b3;
-                border: none;
-                font-size: 14px;
-                padding: 5px 10px;
-            }
-            #backButton:hover {
-                color: #ffffff;
-            }
-            #trackItem {
-                background-color: transparent;
-                color: #ffffff;
-                padding: 10px;
-                border-radius: 4px;
-            }
-            #trackItem:hover {
-                background-color: #282828;
-            }
-            #trackItem[active="true"] {
-                background-color: #233a42;
-            }
-            #sectionHeader {
-                background-color: transparent;
-                color: #ffffff;
-                font-size: 20px;
-                font-weight: bold;
-                padding: 5px 10px;
-                border: none;
-                border-radius: 4px;
-                text-align: left;
-            }
-            #sectionHeader:hover {
-                background-color: #282828;
-            }
-            #playerBar {
-                background-color: #181818;
-                border-top: 1px solid #282828;
-            }
-            #controlButton {
-                background-color: transparent;
-                border: none;
-                border-radius: 20px;
-            }
-            #controlButton:hover {
-                background-color: #282828;
-            }
-            #playPauseButton {
-                background-color: #0cacd7;
-                border: none;
-                border-radius: 25px;
-            }
-            #playPauseButton:hover {
-                background-color: #2ec4e0;
-            }
-            #trackLabel {
-                color: #ffffff;
-                font-size: 13px;
-            }
-            #timeLabel {
-                color: #b3b3b3;
-                font-size: 12px;
-            }
-            #progressSlider::groove:horizontal {
-                background: #4d4d4d;
-                height: 4px;
-                border-radius: 2px;
-            }
-            #progressSlider::handle:horizontal {
-                background: #0cacd7;
-                width: 12px;
-                height: 12px;
-                margin: -4px 0;
-                border-radius: 6px;
-            }
-            #progressSlider::sub-page:horizontal {
-                background: #0cacd7;
-                border-radius: 2px;
-            }
-            #volumeSlider::groove:horizontal {
-                background: #4d4d4d;
-                height: 4px;
-                border-radius: 2px;
-            }
-            #volumeSlider::handle:horizontal {
-                background: #b3b3b3;
-                width: 10px;
-                height: 10px;
-                margin: -3px 0;
-                border-radius: 5px;
-            }
-            #volumeSlider::sub-page:horizontal {
-                background: #b3b3b3;
-                border-radius: 2px;
-            }
-        """)
+        self.setStyleSheet(theme.STYLESHEET)
 
     def _on_search_triggered(self):
         query = self.search_input.text().strip()
@@ -657,9 +501,11 @@ class MainWindow(QMainWindow):
         row = grid.count() // 3
         col = grid.count() % 3
 
-        album_widget = self._create_album_card(title, artist, image_url)
-        grid.addWidget(album_widget, row, col)
-        return album_widget
+        card = AlbumCard(title, artist)
+        if image_url:
+            self._load_image(image_url, card.cover_label, 176)
+        grid.addWidget(card, row, col)
+        return card
 
     def _load_image(self, url, label, size=176):
         if not url:
@@ -699,49 +545,8 @@ class MainWindow(QMainWindow):
         if image_url:
             self._load_image(image_url, self.album_cover_label, 200)
 
-    def _create_album_card(self, title, artist, image_url=None):
-        card = QFrame()
-        card.setObjectName("albumCard")
-        card.setFixedSize(200, 250)
-        card.setStyleSheet("""
-            #albumCard {
-                background-color: #181818;
-                border-radius: 8px;
-                padding: 12px;
-            }
-            #albumCard:hover {
-                background-color: #282828;
-            }
-        """)
-
-        layout = QVBoxLayout(card)
-        layout.setSpacing(10)
-
-        cover_label = QLabel()
-        cover_label.setFixedSize(176, 176)
-        cover_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        cover_label.setStyleSheet("background-color: #2a2a2a; border-radius: 4px;")
-
-        if image_url:
-            self._load_image(image_url, cover_label, 176)
-
-        title_label = QLabel(title)
-        title_label.setStyleSheet("color: #ffffff; font-size: 13px; font-weight: bold;")
-        title_label.setWordWrap(True)
-
-        artist_label = QLabel(artist)
-        artist_label.setStyleSheet("color: #b3b3b3; font-size: 12px;")
-        artist_label.setWordWrap(True)
-
-        layout.addWidget(cover_label)
-        layout.addWidget(title_label)
-        layout.addWidget(artist_label)
-        layout.addStretch()
-
-        return card
-
     def add_track_to_tracklist(self, track_number, title, duration):
-        track_widget = self._create_track_item(track_number, title, duration)
+        track_widget = TrackRow(track_number - 1, title, duration)
         self.tracklist_layout.addWidget(track_widget)
         self._track_items.append(track_widget)
         return track_widget
@@ -756,39 +561,7 @@ class MainWindow(QMainWindow):
 
     def highlight_track(self, index: int):
         for i, item in enumerate(self._track_items):
-            active = i == index
-            item.setProperty("active", active)
-            title_label = getattr(item, "_title_label", None)
-            if title_label is not None:
-                color = "#0cacd7" if active else "#ffffff"
-                title_label.setStyleSheet(f"color: {color}; font-size: 14px; background: transparent;")
-            item.style().unpolish(item)
-            item.style().polish(item)
-
-    def _create_track_item(self, track_number, title, duration):
-        item = QFrame()
-        item.setObjectName("trackItem")
-
-        layout = QHBoxLayout(item)
-        layout.setContentsMargins(10, 5, 10, 5)
-
-        number_label = QLabel(str(track_number))
-        number_label.setFixedWidth(30)
-        number_label.setStyleSheet("color: #b3b3b3; font-size: 14px; background: transparent;")
-
-        title_label = QLabel(title)
-        title_label.setStyleSheet("color: #ffffff; font-size: 14px; background: transparent;")
-
-        duration_label = QLabel(duration)
-        duration_label.setStyleSheet("color: #b3b3b3; font-size: 13px; background: transparent;")
-
-        item._title_label = title_label
-
-        layout.addWidget(number_label)
-        layout.addWidget(title_label, 1)
-        layout.addWidget(duration_label)
-
-        return item
+            item.set_active(i == index)
 
     def set_current_track(self, title):
         self.current_track_label.setText(title)
