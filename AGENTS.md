@@ -80,7 +80,18 @@ main.py -> Controller -> BandcampEngine -> BandcampAPI  (data, worker threads)
   no "Load More".
 - **`Signal(int, ...)` is a 32-bit C++ int.** Bandcamp IDs (e.g.
   `tralbum_id` 4199458029) overflow it. Use `Signal('qint64')` for any signal
-  carrying an ID.
+  carrying an ID. Int-typed signals also **truncate floats** (0.35 → 0) — use
+  `Signal(float)` for anything that carries a fractional value (e.g. MPRIS
+  volume).
+- **libVLC `pause()` toggles.** Calling it twice resumes playback. Use
+  `set_pause(1)` / `set_pause(0)` when a command must mean "paused"
+  unconditionally (e.g. MPRIS `Pause`).
+- **`play()` on an Ended media is silently ignored** while `AudioPlayer.play()`
+  still emits state 1 (UI shows "paused" but nothing plays). Reset
+  `_current_track_index = -1` when the last track ends so Play restarts the
+  album.
+- **MPRIS `Quit` must reach `QApplication.quit()`** (via `window._quit_app`),
+  not just emit the window's `closing` signal — that only runs cleanup.
 - **Never touch `QTimer` or widgets from non-GUI threads** (engine worker,
   libVLC event callbacks, the MPRIS asyncio thread). Marshal back to the GUI
   via Qt signals (queued connection); queued signals only deliver while the
