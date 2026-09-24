@@ -28,6 +28,10 @@ auto/queued connection.
 - `Signal(int, ...)` is a **32-bit C++ int**. Bandcamp IDs (`band_id`,
   `tralbum_id`, e.g. `4199458029`) overflow it. Use
   `Signal('qint64')` for any signal carrying an ID.
+- Int-typed signals also **truncate floats** — a `Signal(str, int)` emitting
+  0.35 delivers 0, so a 0.0–1.0 MPRIS `Volume` setter turned into mute except
+  at exactly 1.0. Any signal carrying a fractional value must be
+  `Signal(float)` (MPRIS volume uses a dedicated `volume_requested` signal).
 - Queued signals only deliver while the GUI thread runs `app.exec()`. In a
   test or probe that never starts the event loop, connected slots will never
   fire.
@@ -62,6 +66,20 @@ auto/queued connection.
   `F821`/`F722` — add a module-level `# ruff: noqa: F821, F722`.
 - `Position` must be exported in **microseconds** (multiply ms by 1000).
 - Commands from D-Bus cross into the GUI thread as queued Qt signals.
+
+## Player state gotchas (libVLC)
+
+- `player.pause()` is a **toggle** — two calls resume. For unconditional
+  pause semantics use `set_pause(1)` / `set_pause(0)`.
+- `play()` on media in the Ended state is silently ignored, but
+  `AudioPlayer.play()` still emits state 1 (UI lies "paused" while nothing
+  plays). Reset `_current_track_index = -1` when the last track ends so Play
+  restarts the album.
+- D-Bus command handlers must not bypass the UI button's state guards —
+  e.g. MPRIS `Pause` should behave like the pause button (check
+  `is_playing()`), and MPRIS `Quit` must call the window's real quit path
+  (`_quit_app` → `QApplication.quit()`), not just emit the `closing` cleanup
+  signal.
 
 ## Verification
 

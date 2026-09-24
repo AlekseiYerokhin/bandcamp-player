@@ -390,6 +390,8 @@ class MainWindow(QMainWindow):
         self.track_info_layout.setSpacing(2)
         self.current_track_label = QLabel("No track playing")
         self.current_track_label.setObjectName("trackLabel")
+        self.current_artist_label = QLabel("")
+        self.current_artist_label.setObjectName("trackArtistLabel")
         self.progress_slider = QSlider(Qt.Orientation.Horizontal)
         self.progress_slider.setObjectName("progressSlider")
         self.progress_slider.setMinimum(0)
@@ -401,6 +403,7 @@ class MainWindow(QMainWindow):
         slider_row.addWidget(self.progress_slider, 1)
         slider_row.addWidget(self.time_label)
         self.track_info_layout.addWidget(self.current_track_label)
+        self.track_info_layout.addWidget(self.current_artist_label)
         self.track_info_layout.addLayout(slider_row)
 
         self.volume_layout = QHBoxLayout()
@@ -574,6 +577,9 @@ class MainWindow(QMainWindow):
 
     def set_current_track(self, title):
         self.current_track_label.setText(title)
+
+    def set_current_artist(self, artist):
+        self.current_artist_label.setText(artist)
 
     def set_play_state(self, playing: bool):
         self.play_pause_button.set_icon_svg(_SVG_PAUSE if playing else _SVG_PLAY, "#ffffff")

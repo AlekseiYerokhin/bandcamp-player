@@ -126,6 +126,10 @@ QStatusBar {
     color: #ffffff;
     font-size: 13px;
 }
+#trackArtistLabel {
+    color: #b3b3b3;
+    font-size: 12px;
+}
 #timeLabel {
     color: #b3b3b3;
     font-size: 12px;

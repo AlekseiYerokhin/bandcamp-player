@@ -83,7 +83,7 @@ class _PlayerInterface(ServiceInterface):
     @Volume.setter
     def Volume(self, value):
         self._service._volume = max(0.0, min(1.0, value))
-        self._service._notify("volume", value)
+        self._service.volume_requested.emit(self._service._volume)
         self.emit_properties_changed({"Volume": self._service._volume})
 
     @dbus_property(access=PropertyAccess.READ)
@@ -151,6 +151,7 @@ class MprisService(QObject):
     """Owns the MPRIS D-Bus service in a background asyncio thread."""
 
     command_requested = Signal(str, int)
+    volume_requested = Signal(float)
 
     def __init__(self, identity: str = "Bandcamp Player", parent=None):
         super().__init__(parent)

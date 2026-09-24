@@ -39,7 +39,7 @@ class AudioPlayer(QObject):
         self.playback_state_changed.emit(1)
 
     def pause(self):
-        self._player.pause()
+        self._player.set_pause(1)
         self._position_timer.stop()
         self.playback_state_changed.emit(0)
 
