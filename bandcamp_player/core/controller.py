@@ -37,18 +37,18 @@ class Controller(QObject):
         self.player.track_ended.connect(self._on_track_ended)
         self.player.playback_error.connect(self._on_playback_error)
 
-        self.window.play_pause_button.clicked.connect(self._on_play_pause_clicked)
-        self.window.prev_button.clicked.connect(self._on_prev_clicked)
-        self.window.next_button.clicked.connect(self._on_next_clicked)
-        self.window.volume_slider.valueChanged.connect(self._on_volume_changed)
-        self.window.progress_slider.sliderMoved.connect(self._on_progress_moved)
+        self.window.play_pause_requested.connect(self._on_play_pause_clicked)
+        self.window.previous_requested.connect(self._on_prev_clicked)
+        self.window.next_requested.connect(self._on_next_clicked)
+        self.window.volume_changed.connect(self._on_volume_changed)
+        self.window.progress_moved.connect(self._on_progress_moved)
         self.window.seek_requested.connect(self._on_seek_requested)
         if self.mpris is not None:
             self.mpris.command_requested.connect(self._on_mpris_command)
             self.mpris.volume_requested.connect(self._on_mpris_volume)
 
     def _setup_player(self):
-        self.player.set_volume(self.window.volume_slider.value())
+        self.player.set_volume(self.window.get_volume())
 
     def _on_window_closing(self):
         self.engine.cleanup()
@@ -124,7 +124,7 @@ class Controller(QObject):
 
     def _display_album(self, data: dict):
         album_title = data.get('title', 'Unknown Album')
-        self.window.album_title_label.setText(album_title)
+        self.window.set_album_title(album_title)
         self._current_album_title = album_title
         self._current_artist = data.get('artist', '')
 
@@ -237,7 +237,7 @@ class Controller(QObject):
     def _on_mpris_volume(self, volume: float):
         value = int(volume * 100)
         self.player.set_volume(value)
-        self.window.volume_slider.setValue(value)
+        self.window.set_volume(value)
 
     def _set_mpris_playing(self, playing: bool):
         if self.mpris is not None:
@@ -270,7 +270,7 @@ class Controller(QObject):
 
     def _on_position_changed(self, position: int):
         duration = self.player.get_length()
-        if not self.window.progress_slider.isSliderDown():
+        if not self.window.is_progress_slider_down():
             self.window.set_progress(position, duration)
         self.window.set_time(position, duration)
         if self.mpris is not None:
