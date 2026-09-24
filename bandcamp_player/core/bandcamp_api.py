@@ -113,6 +113,7 @@ class BandcampAPI:
             })
         return {
             "title": data.get("title", "Unknown Album"),
+            "artist": data.get("tralbum_artist") or data.get("band_name", "Unknown Artist"),
             "art_id": data.get("art_id"),
             "bandcamp_url": data.get("bandcamp_url", ""),
             "tracks": tracks,
