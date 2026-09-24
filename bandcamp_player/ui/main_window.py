@@ -60,7 +60,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Bandcamp Player")
-        self.setMinimumSize(1100, 700)
+        self.resize(1100, 700)
 
         icon_path = os.path.join(_ASSETS_DIR, "icon.png")
         if os.path.exists(icon_path):
