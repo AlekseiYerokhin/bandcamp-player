@@ -1,0 +1,76 @@
+name: Build AppImage (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      create-release:
+        description: Attach the AppImage + sha256 to a GitHub release
+        type: boolean
+        required: false
+        default: false
+
+jobs:
+  build-appimage:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.10'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libvlc-dev \
+            vlc-plugin-base \
+            libfuse2 \
+            desktop-file-utils \
+            libegl1 \
+            libgl1 \
+            libxkbcommon0
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+          pip install -r requirements.txt
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ runner.os }}-appimage-${{ hashFiles('requirements.txt') }}
+
+      - name: Build AppImage
+        run: |
+          chmod +x packaging/build-appimage.sh
+          packaging/build-appimage.sh
+
+      - name: Smoke test (launch offscreen)
+        run: |
+          QT_QPA_PLATFORM=offscreen timeout 20 ./build/Bandcamp-Player-x86_64.AppImage || [ $? -eq 124 ]
+
+      - name: Upload AppImage
+        uses: actions/upload-artifact@v4
+        with:
+          name: Bandcamp-Player-AppImage
+          path: build/Bandcamp-Player-*.AppImage
+
+      - name: Generate sha256 checksums
+        run: |
+          cd build
+          sha256sum Bandcamp-Player-*.AppImage > Bandcamp-Player-x86_64.AppImage.sha256
+          cat Bandcamp-Player-x86_64.AppImage.sha256
+
+      - name: Create Release
+        if: inputs.create-release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            build/Bandcamp-Player-*.AppImage
+            build/Bandcamp-Player-*.sha256
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
