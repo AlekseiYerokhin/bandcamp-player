@@ -324,6 +324,7 @@ class MainWindow(QMainWindow):
         self.volume_layout.addWidget(self.volume_slider)
 
         self.prev_button.clicked.connect(self.previous_requested.emit)
+        self.play_pause_button.clicked.connect(self.play_pause_requested.emit)
         self.next_button.clicked.connect(self.next_requested.emit)
         self.progress_slider.sliderMoved.connect(self.progress_moved.emit)
 

@@ -153,6 +153,21 @@ def test_volume_button_mutes_and_restores(qtbot):
     assert win._muted is False
 
 
+def test_play_pause_button_emits_request(qtbot):
+    from PySide6.QtCore import Qt
+    from PySide6.QtTest import QTest
+
+    from bandcamp_player.ui.main_window import MainWindow
+
+    win = MainWindow()
+    qtbot.addWidget(win)
+    win.show()
+    got = []
+    win.play_pause_requested.connect(lambda: got.append(True))
+    QTest.mouseClick(win.play_pause_button, Qt.MouseButton.LeftButton)
+    assert got == [True]
+
+
 def _fake_card():
     from bandcamp_player.ui.cards import AlbumCard
 
