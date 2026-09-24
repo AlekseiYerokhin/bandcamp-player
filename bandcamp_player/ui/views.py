@@ -18,6 +18,23 @@ _CARD_WIDTH = 220
 _MIN_GAP = 20
 
 
+class GridContainer(QWidget):
+    """A widget that owns a CardGrid and re-flows cards on resize."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.grid = CardGrid(self)
+
+    def resizeEvent(self, event):
+        self.grid.reflow(event.size().width())
+        super().resizeEvent(event)
+
+    def setVisible(self, visible):
+        super().setVisible(visible)
+        if visible:
+            self.grid.reflow(self.width())
+
+
 class CardGrid(QGridLayout):
     """A grid that re-flows its cards to fit the available width."""
 
@@ -39,11 +56,14 @@ class CardGrid(QGridLayout):
             return
         self._last_columns = columns
         widgets = []
-        for i in range(self.count()):
+        for i in reversed(range(self.count())):
             item = self.itemAt(i)
-            if item and item.widget():
-                widgets.append(item.widget())
+            if item is None:
+                continue
+            widget = item.widget()
             self.removeItem(item)
+            if widget is not None:
+                widgets.insert(0, widget)
         for index, widget in enumerate(widgets):
             self.addWidget(widget, index // columns, index % columns)
 
@@ -77,11 +97,14 @@ class _ScrollingView(QWidget):
         self.scroll = QScrollArea()
         self.scroll.setWidgetResizable(True)
         self.scroll.setObjectName(_SCROLL_OBJECT_NAMES[self.kind])
-        self.container = QWidget()
+        self.container, self.content_layout = self._create_container()
         self.container.setObjectName(self.container_object_name)
-        self.content_layout = self._build_content_layout(self.container)
         self.scroll.setWidget(self.container)
         layout.addWidget(self.scroll)
+
+    def _create_container(self):
+        container = QWidget()
+        return container, self._build_content_layout(container)
 
     def _build_content_layout(self, container):
         raise NotImplementedError
@@ -123,10 +146,8 @@ class SearchResultsView(_ScrollingView):
         header_btn.setObjectName("sectionHeader")
         header_btn.setCursor(Qt.CursorShape.PointingHandCursor)
 
-        grid_widget = QWidget()
-        grid = CardGrid(grid_widget)
-        grid_widget.grid = grid
-        grid_widget.resizeEvent = lambda event: grid.reflow(event.size().width())
+        grid_widget = GridContainer()
+        grid = grid_widget.grid
 
         def toggle_section():
             is_visible = grid_widget.isVisible()
@@ -166,10 +187,9 @@ class ArtistDiscographyView(_ScrollingView):
         header_layout = self._build_header()
         self.layout().insertLayout(0, header_layout)
 
-    def _build_content_layout(self, container):
-        layout = CardGrid(container)
-        container.resizeEvent = lambda event: layout.reflow(event.size().width())
-        return layout
+    def _create_container(self):
+        container = GridContainer()
+        return container, container.grid
 
     def _build_header(self):
         header_layout = QHBoxLayout()
