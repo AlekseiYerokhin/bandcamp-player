@@ -119,10 +119,11 @@ main.py -> Controller -> BandcampEngine -> BandcampAPI  (data, worker threads)
 
 - **Every task gets its own branch.** Start each task on a fresh branch (e.g.
   `feat/my-feature`); `main` stays releasable and is never worked on directly.
-- **Keep a branch to ~3 commits.** Each branch holds a small, focused set of
-  separate commits — no more than ~3. If a task would need more, split it into
-  separate tasks (each on its own branch). Don't bundle unrelated changes into
-  one commit.
+- **One task = one branch.** A task that fits in ~3 commits stays on a single
+  branch — do not preemptively split it into several branches. Only split when
+  the task needs **more than 3 commits**, and always **ask the user first**
+  whether to split into separate tasks (each on its own branch). Don't bundle
+  unrelated changes into one commit.
 - **Agree the scope first.** Before starting, confirm with the user what the
   task is and roughly how it breaks down, so the branch stays focused.
 - **Ask before every commit.** Never commit without the user's explicit
