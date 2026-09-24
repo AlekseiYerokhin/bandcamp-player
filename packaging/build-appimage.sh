@@ -8,6 +8,12 @@ APPDIR="${BUILD_DIR}/bandcamp-player.AppDir"
 ARCH="${ARCH:-x86_64}"
 APPIMAGE_NAME="Bandcamp-Player-${ARCH}.AppImage"
 
+# Pinned appimagetool release + its expected sha256, so builds are reproducible
+# and the downloaded tool is verified before execution (no unverified
+# "continuous" builds from a moving target).
+APPIMAGETOOL_VERSION="1.9.1"
+APPIMAGETOOL_SHA256_x86_64="ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0"
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -193,13 +199,27 @@ download_appimagetool() {
         return
     fi
 
-    local url="https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-${ARCH}.AppImage"
-    log "Downloading appimagetool..." >&2
+    local expected_sha
+    expected_sha="${APPIMAGETOOL_SHA256_x86_64}"
+    if [ "$ARCH" != "x86_64" ]; then
+        err "Only x86_64 is supported (no pinned appimagetool checksum for ${ARCH})."
+    fi
+
+    local url="https://github.com/AppImage/appimagetool/releases/download/${APPIMAGETOOL_VERSION}/appimagetool-${ARCH}.AppImage"
+    log "Downloading appimagetool ${APPIMAGETOOL_VERSION}..." >&2
 
     if command -v wget &>/dev/null; then
         wget -q -O "$tool_path" "$url"
     else
         curl -sL -o "$tool_path" "$url"
+    fi
+
+    log "Verifying appimagetool sha256..." >&2
+    local actual_sha
+    actual_sha="$(sha256sum "$tool_path" | awk '{print $1}')"
+    if [ "$actual_sha" != "$expected_sha" ]; then
+        rm -f "$tool_path"
+        err "appimagetool checksum mismatch (got ${actual_sha}, expected ${expected_sha})"
     fi
 
     chmod +x "$tool_path"
