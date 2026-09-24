@@ -235,6 +235,14 @@ class MainWindow(QMainWindow):
         self._abort_pending_images()
         self.artist_view.clear()
 
+    def show_discography_placeholder(self, text):
+        self._abort_pending_images()
+        self.artist_view.show_placeholder(text)
+
+    def show_tracklist_placeholder(self, text):
+        self._abort_pending_images()
+        self.track_view.show_placeholder(text)
+
     def _setup_player_bar(self, parent_layout):
         player_bar = QFrame()
         player_bar.setObjectName("playerBar")
@@ -319,6 +327,13 @@ class MainWindow(QMainWindow):
         self.search_button.setEnabled(True)
         self.search_button.setText("Search")
 
+    def show_search_loading(self):
+        self.search_view.show_placeholder("Searching...")
+
+    def show_search_placeholder(self, text):
+        self._abort_pending_images()
+        self.search_view.show_placeholder(text)
+
     def show_status(self, message: str, timeout_ms: int = 5000):
         self.statusBar().showMessage(message, timeout_ms)
 
@@ -353,8 +368,8 @@ class MainWindow(QMainWindow):
         if image_url:
             self._image_loader.load(image_url, self.track_view.album_cover_label, 200)
 
-    def add_track_to_tracklist(self, track_number, title, duration):
-        return self.track_view.add_track(track_number, title, duration)
+    def add_track_to_tracklist(self, track_number, title, duration, streamable=True):
+        return self.track_view.add_track(track_number, title, duration, streamable=streamable)
 
     def clear_tracklist(self):
         self._abort_pending_images()

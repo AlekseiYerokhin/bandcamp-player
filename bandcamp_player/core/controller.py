@@ -21,6 +21,7 @@ class Controller(QObject):
         self._last_view = 'search'
 
         self._search_results = {'album': [], 'track': [], 'artist': []}
+        self._last_query = ""
 
         self._connect_signals()
         self._setup_player()
@@ -56,16 +57,18 @@ class Controller(QObject):
 
     def _on_search_requested(self, query: str):
         self._last_view = 'search'
+        self._last_query = query
         self.window.clear_results()
+        self.window.show_search_loading()
         self.engine.search(query)
 
     def _on_search_results(self, success: bool, results: list, error: str = ""):
         self.window.search_finished()
-        self.window.clear_results()
 
         if not success:
             self.window.show_status(error or "Search failed")
             self.window.show_search_results()
+            self.window.show_search_placeholder(f'No results for "{self._last_query}"')
             return
 
         self._search_results = {'album': [], 'track': [], 'artist': []}
@@ -74,6 +77,13 @@ class Controller(QObject):
             result_type = result.get('type', 'album')
             if result_type in self._search_results:
                 self._search_results[result_type].append(result)
+
+        self.window.clear_results()
+
+        if not any(self._search_results.values()):
+            self.window.show_search_results()
+            self.window.show_search_placeholder(f'No results for "{self._last_query}"')
+            return
 
         for result_type in ['album', 'track', 'artist']:
             if self._search_results[result_type]:
@@ -104,10 +114,12 @@ class Controller(QObject):
 
     def _on_album_clicked(self, band_id, tralbum_id, tralbum_type='a'):
         self._current_band_id = band_id
+        self.window.show_tracklist_placeholder("Loading tracklist...")
         self.engine.get_album_data(band_id, tralbum_id, tralbum_type)
 
     def _on_artist_clicked(self, band_id):
         self._current_band_id = band_id
+        self.window.show_discography_placeholder("Loading discography...")
         self.engine.get_artist_data(band_id)
 
     def _on_album_data(self, success: bool, data: dict, error: str = ""):
@@ -143,15 +155,20 @@ class Controller(QObject):
             title = track.get('title', 'Unknown')
             duration_ms = int(track.get('duration', 0))
             duration_str = self._format_duration(duration_ms)
+            url = track.get('url', '')
+            streamable = bool(url)
 
             self._tracks.append({
                 'title': title,
-                'url': track.get('url', ''),
+                'url': url,
                 'duration': duration_ms
             })
 
-            track_widget = self.window.add_track_to_tracklist(i, title, duration_str)
+            track_widget = self.window.add_track_to_tracklist(i, title, duration_str, streamable=streamable)
             track_widget.clicked.connect(self._play_track)
+
+        if not track_list:
+            self.window.show_tracklist_placeholder("No tracks to play")
 
         back_callback = self._go_back_to_artist if self._last_view == 'artist' else self.window.show_search_results
         self.window.show_tracklist(back_callback)
@@ -178,19 +195,26 @@ class Controller(QObject):
                 card.set_click_data(band_id, album['item_id'], album_type)
                 card.clicked.connect(self._on_album_clicked)
 
+        if not albums:
+            self.window.show_discography_placeholder("No releases found")
+
         self._last_view = 'artist'
         self.window.show_artist_discography()
 
     def _play_track(self, index: int):
-        if 0 <= index < len(self._tracks):
-            self._current_track_index = index
-            track = self._tracks[index]
+        if not 0 <= index < len(self._tracks):
+            return
+        track = self._tracks[index]
+        if not track.get('url'):
+            self.window.show_status("This track is not available for streaming")
+            return
+        self._current_track_index = index
 
-            self.player.load_and_play(track['url'])
-            self.window.set_current_track(track['title'])
-            self.window.set_current_artist(self._current_artist)
-            self.window.highlight_track(index)
-            self._mpris_track_changed(index)
+        self.player.load_and_play(track['url'])
+        self.window.set_current_track(track['title'])
+        self.window.set_current_artist(self._current_artist)
+        self.window.highlight_track(index)
+        self._mpris_track_changed(index)
 
     def _mpris_track_changed(self, index: int):
         if self.mpris is None:

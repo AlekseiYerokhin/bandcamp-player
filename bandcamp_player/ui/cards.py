@@ -64,10 +64,11 @@ class TrackRow(QFrame):
 
     clicked = Signal(int)
 
-    def __init__(self, index, title, duration, parent=None):
+    def __init__(self, index, title, duration, streamable=True, parent=None):
         super().__init__(parent)
         self._index = index
         self._active = False
+        self._streamable = streamable
 
         self.setObjectName("trackItem")
         self.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -89,6 +90,18 @@ class TrackRow(QFrame):
         layout.addWidget(self._title_label, 1)
         layout.addWidget(duration_label)
 
+        if not streamable:
+            self.set_streamable(False)
+
+    def set_streamable(self, streamable: bool):
+        self._streamable = streamable
+        self.setCursor(Qt.CursorShape.PointingHandCursor if streamable else Qt.CursorShape.ForbiddenCursor)
+        if not streamable:
+            self._title_label.setStyleSheet("color: #666666; font-size: 14px; background: transparent;")
+            self.setProperty("disabled", True)
+            self.style().unpolish(self)
+            self.style().polish(self)
+
     def set_active(self, active: bool):
         self._active = active
         self.setProperty("active", active)
@@ -98,5 +111,6 @@ class TrackRow(QFrame):
         self.style().polish(self)
 
     def mousePressEvent(self, event):
-        self.clicked.emit(self._index)
+        if self._streamable:
+            self.clicked.emit(self._index)
         super().mousePressEvent(event)

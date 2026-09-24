@@ -86,8 +86,18 @@ QStatusBar {
 #trackItem:hover {
     background-color: #282828;
 }
+#trackItem[disabled="true"]:hover {
+    background-color: transparent;
+}
 #trackItem[active="true"] {
     background-color: #233a42;
+}
+#placeholder {
+    color: #b3b3b3;
+    font-size: 15px;
+}
+#albumCard[disabled="true"] {
+    opacity: 0.4;
 }
 #sectionHeader {
     background-color: transparent;

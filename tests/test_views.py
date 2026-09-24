@@ -63,6 +63,41 @@ def test_views_build_and_clear(qtbot):
     assert track._track_items == []
 
 
+def test_placeholder_appears_in_views(qtbot):
+    from bandcamp_player.ui.image_loader import ImageLoader
+    from bandcamp_player.ui.views import SearchResultsView
+
+    view = SearchResultsView(ImageLoader(), parent=None)
+    qtbot.addWidget(view)
+    view.show_placeholder("No results for x")
+    assert view.content_layout.count() == 1
+    assert "No results" in view.content_layout.itemAt(0).widget().text()
+
+
+def test_track_row_disabled_when_not_streamable(qtbot):
+    from PySide6.QtCore import Qt
+    from PySide6.QtTest import QTest
+
+    from bandcamp_player.ui.cards import TrackRow
+
+    row = TrackRow(0, "No stream", "1:00", streamable=False)
+    qtbot.addWidget(row)
+    row.show()
+    assert row._streamable is False
+    got = []
+    row.clicked.connect(got.append)
+    QTest.mouseClick(row, Qt.MouseButton.LeftButton)
+    assert got == []
+
+    row2 = TrackRow(1, "Ok", "1:00")
+    qtbot.addWidget(row2)
+    row2.show()
+    got2 = []
+    row2.clicked.connect(got2.append)
+    QTest.mouseClick(row2, Qt.MouseButton.LeftButton)
+    assert got2 == [1]
+
+
 def _fake_card():
     from bandcamp_player.ui.cards import AlbumCard
 
