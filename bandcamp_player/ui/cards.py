@@ -17,6 +17,8 @@ class AlbumCard(QFrame):
         self.setObjectName("albumCard")
         self.setFixedSize(200, 250)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.setAccessibleName(title)
         self.setStyleSheet("""
             #albumCard {
                 background-color: #181818;
@@ -25,6 +27,10 @@ class AlbumCard(QFrame):
             }
             #albumCard:hover {
                 background-color: #282828;
+            }
+            #albumCard:focus {
+                background-color: #282828;
+                border: 2px solid #0cacd7;
             }
         """)
 
@@ -58,6 +64,13 @@ class AlbumCard(QFrame):
         self.clicked.emit(self.band_id, self.item_id, self.item_type)
         super().mousePressEvent(event)
 
+    def keyPressEvent(self, event):
+        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space):
+            self.clicked.emit(self.band_id, self.item_id, self.item_type)
+            event.accept()
+        else:
+            super().keyPressEvent(event)
+
 
 class TrackRow(QFrame):
     """A clickable tracklist row that emits its index on click."""
@@ -72,6 +85,7 @@ class TrackRow(QFrame):
 
         self.setObjectName("trackItem")
         self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(10, 5, 10, 5)
@@ -114,3 +128,11 @@ class TrackRow(QFrame):
         if self._streamable:
             self.clicked.emit(self._index)
         super().mousePressEvent(event)
+
+    def keyPressEvent(self, event):
+        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space):
+            if self._streamable:
+                self.clicked.emit(self._index)
+            event.accept()
+        else:
+            super().keyPressEvent(event)

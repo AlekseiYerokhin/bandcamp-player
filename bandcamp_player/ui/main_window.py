@@ -44,6 +44,26 @@ def _format_ms(ms: int) -> str:
     return f"{minutes}:{seconds:02d}"
 
 
+class ClickableSlider(QSlider):
+    """A slider that jumps to the clicked position on the track."""
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._seek_to_click(event.position().x())
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        if event.buttons() & Qt.MouseButton.LeftButton:
+            self._seek_to_click(event.position().x())
+        super().mouseMoveEvent(event)
+
+    def _seek_to_click(self, x: float):
+        ratio = x / max(1, self.width())
+        value = int(self.minimum() + ratio * (self.maximum() - self.minimum()))
+        self.setValue(value)
+        self.sliderMoved.emit(value)
+
+
 class MainWindow(QMainWindow):
     search_requested = Signal(str)
 
@@ -269,7 +289,7 @@ class MainWindow(QMainWindow):
         self.current_track_label.setObjectName("trackLabel")
         self.current_artist_label = QLabel("")
         self.current_artist_label.setObjectName("trackArtistLabel")
-        self.progress_slider = QSlider(Qt.Orientation.Horizontal)
+        self.progress_slider = ClickableSlider(Qt.Orientation.Horizontal)
         self.progress_slider.setObjectName("progressSlider")
         self.progress_slider.setMinimum(0)
         self.progress_slider.setMaximum(0)
@@ -296,6 +316,10 @@ class MainWindow(QMainWindow):
         self.volume_slider.setFixedWidth(100)
         self.volume_slider.valueChanged.connect(self._update_volume_icon)
         self.volume_slider.valueChanged.connect(self.volume_changed.emit)
+        self.volume_slider.valueChanged.connect(self._remember_volume)
+        self.volume_button.clicked.connect(self._toggle_mute)
+        self._muted = False
+        self._pre_mute_volume = 70
         self.volume_layout.addWidget(self.volume_button)
         self.volume_layout.addWidget(self.volume_slider)
 
@@ -406,6 +430,19 @@ class MainWindow(QMainWindow):
 
     def set_time(self, position: int, duration: int):
         self.time_label.setText(f"{_format_ms(position)} / {_format_ms(duration)}")
+
+    def _toggle_mute(self):
+        if self._muted:
+            self._muted = False
+            self.volume_slider.setValue(self._pre_mute_volume)
+        else:
+            self._muted = True
+            self._pre_mute_volume = self.volume_slider.value()
+            self.volume_slider.setValue(0)
+
+    def _remember_volume(self, value):
+        if not self._muted and value > 0:
+            self._pre_mute_volume = value
 
     def _update_volume_icon(self, value):
         if value == 0:

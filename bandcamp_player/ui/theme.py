@@ -86,6 +86,10 @@ QStatusBar {
 #trackItem:hover {
     background-color: #282828;
 }
+#trackItem:focus {
+    background-color: #282828;
+    border: 1px solid #0cacd7;
+}
 #trackItem[disabled="true"]:hover {
     background-color: transparent;
 }
