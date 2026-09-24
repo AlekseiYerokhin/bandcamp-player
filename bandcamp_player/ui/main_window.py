@@ -1,11 +1,8 @@
 import contextlib
 import os
 
-import shiboken6
-from PySide6.QtCore import QSettings, QSize, Qt, QUrl, Signal
-from PySide6.QtGui import QAction, QCloseEvent, QIcon, QKeySequence, QPainter, QPixmap, QShortcut
-from PySide6.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
-from PySide6.QtSvg import QSvgRenderer
+from PySide6.QtCore import QSettings, Qt, Signal
+from PySide6.QtGui import QAction, QCloseEvent, QIcon, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QFrame,
     QGridLayout,
@@ -26,6 +23,18 @@ from PySide6.QtWidgets import (
 
 from bandcamp_player.ui import theme
 from bandcamp_player.ui.cards import AlbumCard, TrackRow
+from bandcamp_player.ui.icons import (
+    SVG_NEXT,
+    SVG_PAUSE,
+    SVG_PLAY,
+    SVG_PREV,
+    SVG_VOL_HIGH,
+    SVG_VOL_LOW,
+    SVG_VOL_MED,
+    SVG_VOL_MUTE,
+    IconButton,
+)
+from bandcamp_player.ui.image_loader import ImageLoader
 
 _ASSETS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "assets")
 
@@ -35,55 +44,6 @@ def _format_ms(ms: int) -> str:
     minutes = seconds // 60
     seconds %= 60
     return f"{minutes}:{seconds:02d}"
-
-
-_SVG_PREV = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect x="4" y="5" width="2.5" height="14" fill="{c}"/><polygon points="19,5 8,12 19,19" fill="{c}"/></svg>'
-_SVG_NEXT = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><polygon points="5,5 16,12 5,19" fill="{c}"/><rect x="17.5" y="5" width="2.5" height="14" fill="{c}"/></svg>'
-_SVG_PLAY = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><polygon points="7,4 20,12 7,20" fill="{c}"/></svg>'
-_SVG_PAUSE = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect x="5" y="4" width="4.5" height="16" rx="1" fill="{c}"/><rect x="14.5" y="4" width="4.5" height="16" rx="1" fill="{c}"/></svg>'
-_SVG_VOL_HIGH = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><polygon points="3,9 7,9 12,4 12,20 7,15 3,15" fill="{c}"/><path d="M15.5,8.5 Q18,12 15.5,15.5" stroke="{c}" stroke-width="1.8" fill="none" stroke-linecap="round"/><path d="M18,5.5 Q22,12 18,18.5" stroke="{c}" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>'
-_SVG_VOL_MED = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><polygon points="3,9 7,9 12,4 12,20 7,15 3,15" fill="{c}"/><path d="M16,8 Q19,12 16,16" stroke="{c}" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>'
-_SVG_VOL_LOW = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><polygon points="3,9 7,9 12,4 12,20 7,15 3,15" fill="{c}"/></svg>'
-_SVG_VOL_MUTE = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><polygon points="3,9 7,9 12,4 12,20 7,15 3,15" fill="{c}"/><line x1="16" y1="9" x2="22" y2="15" stroke="{c}" stroke-width="2" stroke-linecap="round"/><line x1="22" y1="9" x2="16" y2="15" stroke="{c}" stroke-width="2" stroke-linecap="round"/></svg>'
-
-
-def _icon_from_svg(svg_template, size=24, color="#ffffff"):
-    svg_str = svg_template.replace("{c}", color)
-    pixmap = QPixmap(size, size)
-    pixmap.fill(Qt.GlobalColor.transparent)
-    painter = QPainter(pixmap)
-    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-    renderer = QSvgRenderer(svg_str.encode())
-    renderer.render(painter)
-    painter.end()
-    return QIcon(pixmap)
-
-
-class IconButton(QPushButton):
-    def __init__(self, svg_template, icon_size=20, normal_color="#b3b3b3", hover_color="#ffffff", parent=None):
-        super().__init__(parent)
-        self._svg = svg_template
-        self._icon_size = icon_size
-        self._normal_color = normal_color
-        self._hover_color = hover_color
-        self._update_icon(self._normal_color)
-        self.setCursor(Qt.CursorShape.PointingHandCursor)
-
-    def _update_icon(self, color):
-        self.setIcon(_icon_from_svg(self._svg, self._icon_size, color))
-        self.setIconSize(QSize(self._icon_size, self._icon_size))
-
-    def set_icon_svg(self, svg_template, color=None):
-        self._svg = svg_template
-        self._update_icon(color or self._normal_color)
-
-    def enterEvent(self, event):
-        self._update_icon(self._hover_color)
-        super().enterEvent(event)
-
-    def leaveEvent(self, event):
-        self._update_icon(self._normal_color)
-        super().leaveEvent(event)
 
 
 class MainWindow(QMainWindow):
@@ -102,9 +62,7 @@ class MainWindow(QMainWindow):
         if os.path.exists(icon_path):
             self.setWindowIcon(QIcon(icon_path))
 
-        self._image_loader = QNetworkAccessManager(self)
-        self._image_loader.finished.connect(self._on_image_loaded)
-        self._pending_images = {}
+        self._image_loader = ImageLoader(self)
         self._setup_ui()
         self._apply_styles()
         self._load_settings()
@@ -374,15 +332,15 @@ class MainWindow(QMainWindow):
         player_layout.setContentsMargins(20, 10, 20, 10)
         player_layout.setSpacing(15)
 
-        self.prev_button = IconButton(_SVG_PREV, icon_size=18, normal_color="#b3b3b3", hover_color="#ffffff")
+        self.prev_button = IconButton(SVG_PREV, icon_size=18, normal_color="#b3b3b3", hover_color="#ffffff")
         self.prev_button.setObjectName("controlButton")
         self.prev_button.setFixedSize(40, 40)
 
-        self.play_pause_button = IconButton(_SVG_PLAY, icon_size=20, normal_color="#ffffff", hover_color="#ffffff")
+        self.play_pause_button = IconButton(SVG_PLAY, icon_size=20, normal_color="#ffffff", hover_color="#ffffff")
         self.play_pause_button.setObjectName("playPauseButton")
         self.play_pause_button.setFixedSize(50, 50)
 
-        self.next_button = IconButton(_SVG_NEXT, icon_size=18, normal_color="#b3b3b3", hover_color="#ffffff")
+        self.next_button = IconButton(SVG_NEXT, icon_size=18, normal_color="#b3b3b3", hover_color="#ffffff")
         self.next_button.setObjectName("controlButton")
         self.next_button.setFixedSize(40, 40)
 
@@ -408,7 +366,7 @@ class MainWindow(QMainWindow):
 
         self.volume_layout = QHBoxLayout()
         self.volume_layout.setSpacing(8)
-        self.volume_button = IconButton(_SVG_VOL_HIGH, icon_size=22, normal_color="#b3b3b3", hover_color="#b3b3b3")
+        self.volume_button = IconButton(SVG_VOL_HIGH, icon_size=22, normal_color="#b3b3b3", hover_color="#b3b3b3")
         self.volume_button.setObjectName("controlButton")
         self.volume_button.setFixedSize(28, 28)
         self.volume_slider = QSlider(Qt.Orientation.Horizontal)
@@ -520,38 +478,10 @@ class MainWindow(QMainWindow):
         return card
 
     def _load_image(self, url, label, size=176):
-        if not url:
-            return
-        if url.startswith('//'):
-            url = 'https:' + url
-        qurl = QUrl(url)
-        if not qurl.isValid():
-            return
-        request = QNetworkRequest(qurl)
-        request.setRawHeader(b"User-Agent", b"Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
-        request.setRawHeader(b"Referer", b"https://bandcamp.com/")
-        reply = self._image_loader.get(request)
-        self._pending_images[reply] = (label, size)
+        self._image_loader.load(url, label, size)
 
     def _abort_pending_images(self):
-        for reply in list(self._pending_images):
-            reply.abort()
-        self._pending_images = {}
-
-    def _on_image_loaded(self, reply):
-        entry = self._pending_images.pop(reply, None)
-        if entry is None:
-            reply.deleteLater()
-            return
-        label, size = entry
-        if reply.error() == QNetworkReply.NetworkError.NoError and shiboken6.isValid(label):
-            data = reply.readAll()
-            if data.size() > 0:
-                pixmap = QPixmap()
-                if pixmap.loadFromData(data):
-                    label.setPixmap(pixmap.scaled(size, size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
-                    label.setMinimumSize(1, 1)
-        reply.deleteLater()
+        self._image_loader.abort_all()
 
     def set_album_cover(self, image_url):
         if image_url:
@@ -582,7 +512,7 @@ class MainWindow(QMainWindow):
         self.current_artist_label.setText(artist)
 
     def set_play_state(self, playing: bool):
-        self.play_pause_button.set_icon_svg(_SVG_PAUSE if playing else _SVG_PLAY, "#ffffff")
+        self.play_pause_button.set_icon_svg(SVG_PAUSE if playing else SVG_PLAY, "#ffffff")
 
     def set_progress(self, position: int, duration: int):
         if duration > 0:
@@ -594,11 +524,11 @@ class MainWindow(QMainWindow):
 
     def _update_volume_icon(self, value):
         if value == 0:
-            svg = _SVG_VOL_MUTE
+            svg = SVG_VOL_MUTE
         elif value < 33:
-            svg = _SVG_VOL_LOW
+            svg = SVG_VOL_LOW
         elif value < 66:
-            svg = _SVG_VOL_MED
+            svg = SVG_VOL_MED
         else:
-            svg = _SVG_VOL_HIGH
+            svg = SVG_VOL_HIGH
         self.volume_button.set_icon_svg(svg, "#b3b3b3")
