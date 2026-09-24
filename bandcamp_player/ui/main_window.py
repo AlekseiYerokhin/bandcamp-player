@@ -49,6 +49,12 @@ class MainWindow(QMainWindow):
 
     seek_requested = Signal(int)
 
+    play_pause_requested = Signal()
+    previous_requested = Signal()
+    next_requested = Signal()
+    volume_changed = Signal(int)
+    progress_moved = Signal(int)
+
     closing = Signal()
 
     def __init__(self):
@@ -151,7 +157,7 @@ class MainWindow(QMainWindow):
 
         self._play_pause_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Space), self)
         self._play_pause_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
-        self._play_pause_shortcut.activated.connect(self.play_pause_button.animateClick)
+        self._play_pause_shortcut.activated.connect(self.play_pause_requested.emit)
 
         self._seek_fwd_shortcut = QShortcut("Ctrl+Right", self)
         self._seek_fwd_shortcut.setContext(Qt.ShortcutContext.ApplicationShortcut)
@@ -281,8 +287,13 @@ class MainWindow(QMainWindow):
         self.volume_slider.setValue(70)
         self.volume_slider.setFixedWidth(100)
         self.volume_slider.valueChanged.connect(self._update_volume_icon)
+        self.volume_slider.valueChanged.connect(self.volume_changed.emit)
         self.volume_layout.addWidget(self.volume_button)
         self.volume_layout.addWidget(self.volume_slider)
+
+        self.prev_button.clicked.connect(self.previous_requested.emit)
+        self.next_button.clicked.connect(self.next_requested.emit)
+        self.progress_slider.sliderMoved.connect(self.progress_moved.emit)
 
         player_layout.addWidget(self.prev_button)
         player_layout.addWidget(self.play_pause_button)
@@ -357,6 +368,18 @@ class MainWindow(QMainWindow):
 
     def set_current_artist(self, artist):
         self.current_artist_label.setText(artist)
+
+    def set_volume(self, value):
+        self.volume_slider.setValue(value)
+
+    def get_volume(self) -> int:
+        return self.volume_slider.value()
+
+    def is_progress_slider_down(self) -> bool:
+        return self.progress_slider.isSliderDown()
+
+    def set_album_title(self, title):
+        self.track_view.album_title_label.setText(title)
 
     def set_play_state(self, playing: bool):
         self.play_pause_button.set_icon_svg(SVG_PAUSE if playing else SVG_PLAY, "#ffffff")

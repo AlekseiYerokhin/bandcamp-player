@@ -243,7 +243,7 @@ def test_mpris_volume_uses_float_signal(mpris_harness):
     _ctrl, _engine, player, win, mpris = mpris_harness
     mpris.volume_requested.emit(0.35)
     assert player.volume == 35
-    assert win.volume_slider.value() == 35
+    assert win.get_volume() == 35
     mpris.volume_requested.emit(1.0)
     assert player.volume == 100
 
