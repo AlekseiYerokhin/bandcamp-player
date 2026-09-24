@@ -7,7 +7,7 @@ aborting all in-flight loads when a view is cleared.
 """
 
 import shiboken6
-from PySide6.QtCore import QObject, QUrl, Qt
+from PySide6.QtCore import QObject, Qt, QUrl
 from PySide6.QtGui import QPixmap
 from PySide6.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
 

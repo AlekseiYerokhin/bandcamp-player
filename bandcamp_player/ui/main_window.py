@@ -5,14 +5,12 @@ from PySide6.QtCore import QSettings, Qt, Signal
 from PySide6.QtGui import QAction, QCloseEvent, QIcon, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QFrame,
-    QGridLayout,
     QHBoxLayout,
     QLabel,
     QLineEdit,
     QMainWindow,
     QMenu,
     QPushButton,
-    QScrollArea,
     QSlider,
     QStackedWidget,
     QStyle,
@@ -22,7 +20,6 @@ from PySide6.QtWidgets import (
 )
 
 from bandcamp_player.ui import theme
-from bandcamp_player.ui.cards import AlbumCard, TrackRow
 from bandcamp_player.ui.icons import (
     SVG_NEXT,
     SVG_PAUSE,
@@ -35,6 +32,7 @@ from bandcamp_player.ui.icons import (
     IconButton,
 )
 from bandcamp_player.ui.image_loader import ImageLoader
+from bandcamp_player.ui.views import ArtistDiscographyView, SearchResultsView, TracklistView
 
 _ASSETS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "assets")
 
@@ -186,9 +184,13 @@ class MainWindow(QMainWindow):
         self.stacked_widget = QStackedWidget()
         self.stacked_widget.setObjectName("centralStack")
 
-        self.search_results_widget = self._create_search_results_widget()
-        self.artist_discography_widget = self._create_artist_discography_widget()
-        self.tracklist_widget = self._create_tracklist_widget()
+        self.search_view = SearchResultsView(self._image_loader)
+        self.artist_view = ArtistDiscographyView(self._image_loader)
+        self.track_view = TracklistView(self._image_loader)
+
+        self.search_results_widget = self.search_view
+        self.artist_discography_widget = self.artist_view
+        self.tracklist_widget = self.track_view
 
         self.stacked_widget.addWidget(self.search_results_widget)
         self.stacked_widget.addWidget(self.artist_discography_widget)
@@ -196,133 +198,36 @@ class MainWindow(QMainWindow):
 
         parent_layout.addWidget(self.stacked_widget)
 
-    def _create_search_results_widget(self):
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
-        layout.setContentsMargins(20, 20, 20, 20)
+        # Back-compat aliases used by controller/tests.
+        self.results_layout = self.search_view.content_layout
+        self.discography_layout = self.artist_view.content_layout
+        self.tracklist_layout = self.track_view.content_layout
+        self.artist_back_button = self.artist_view.back_button
+        self.back_button = self.track_view.back_button
+        self.artist_image_label = self.artist_view.artist_image_label
+        self.artist_name_label = self.artist_view.artist_name_label
+        self.album_cover_label = self.track_view.album_cover_label
+        self.album_title_label = self.track_view.album_title_label
 
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setObjectName("resultsScroll")
-
-        self.results_container = QWidget()
-        self.results_container.setObjectName("resultsContainer")
-        self.results_layout = QVBoxLayout(self.results_container)
-        self.results_layout.setSpacing(30)
-        self.results_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-
-        self._search_sections = {}
-
-        scroll.setWidget(self.results_container)
-        layout.addWidget(scroll)
-
-        return widget
-
-    def _create_artist_discography_widget(self):
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(15)
-
-        header_layout = QHBoxLayout()
-        self.artist_image_label = QLabel()
-        self.artist_image_label.setFixedSize(200, 200)
-        self.artist_image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.artist_image_label.setStyleSheet("background-color: #2a2a2a; border-radius: 4px;")
-        self.artist_name_label = QLabel("Artist Name")
-        self.artist_name_label.setObjectName("artistName")
-        self.artist_back_button = QPushButton("← Back")
-        self.artist_back_button.setObjectName("backButton")
-        self.artist_back_button.clicked.connect(self.show_search_results)
-
-        header_layout.addWidget(self.artist_back_button)
-        header_layout.addWidget(self.artist_image_label)
-        self.artist_name_label.setWordWrap(True)
-        header_layout.addWidget(self.artist_name_label, 1)
-        header_layout.addStretch()
-
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setObjectName("discographyScroll")
-
-        self.discography_container = QWidget()
-        self.discography_container.setObjectName("discographyContainer")
-        self.discography_layout = QGridLayout(self.discography_container)
-        self.discography_layout.setSpacing(20)
-        self.discography_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
-
-        scroll.setWidget(self.discography_container)
-
-        layout.addLayout(header_layout)
-        layout.addWidget(scroll)
-
-        return widget
+        self.artist_view.back_button.clicked.connect(self.show_search_results)
+        self.track_view.back_button.clicked.connect(self.show_search_results)
 
     def show_artist_discography(self):
         self.stacked_widget.setCurrentWidget(self.artist_discography_widget)
 
     def set_artist_name(self, name):
-        self.artist_name_label.setText(name)
+        self.artist_view.set_artist_name(name)
 
     def set_artist_image(self, image_url):
         if image_url:
-            self._load_image(image_url, self.artist_image_label, 200)
+            self._image_loader.load(image_url, self.artist_view.artist_image_label, 200)
 
     def add_discography_album(self, title, image_url=None, album_type='album'):
-        row = self.discography_layout.count() // 3
-        col = self.discography_layout.count() % 3
-        card = AlbumCard(title, image_url=image_url)
-        if image_url:
-            self._load_image(image_url, card.cover_label, 176)
-        self.discography_layout.addWidget(card, row, col)
-        return card
+        return self.artist_view.add_album(title, image_url, album_type)
 
     def clear_discography(self):
         self._abort_pending_images()
-        while self.discography_layout.count():
-            item = self.discography_layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
-
-    def _create_tracklist_widget(self):
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(15)
-
-        header_layout = QHBoxLayout()
-        self.album_cover_label = QLabel()
-        self.album_cover_label.setFixedSize(200, 200)
-        self.album_cover_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.album_cover_label.setStyleSheet("background-color: #2a2a2a; border-radius: 4px;")
-        self.album_title_label = QLabel("Album Title")
-        self.album_title_label.setObjectName("albumTitle")
-        self.back_button = QPushButton("← Back")
-        self.back_button.setObjectName("backButton")
-        self.back_button.clicked.connect(self.show_search_results)
-
-        header_layout.addWidget(self.back_button)
-        header_layout.addWidget(self.album_cover_label)
-        header_layout.addWidget(self.album_title_label)
-        header_layout.addStretch()
-
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setObjectName("tracklistScroll")
-
-        self.tracklist_container = QWidget()
-        self.tracklist_container.setObjectName("tracklistContainer")
-        self.tracklist_layout = QVBoxLayout(self.tracklist_container)
-        self.tracklist_layout.setSpacing(8)
-        self.tracklist_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        self._track_items = []
-
-        scroll.setWidget(self.tracklist_container)
-
-        layout.addLayout(header_layout)
-        layout.addWidget(scroll)
-
-        return widget
+        self.artist_view.clear()
 
     def _setup_player_bar(self, parent_layout):
         player_bar = QFrame()
@@ -412,70 +317,20 @@ class MainWindow(QMainWindow):
 
     def clear_results(self):
         self._abort_pending_images()
-        while self.results_layout.count():
-            item = self.results_layout.takeAt(0)
-            if item is None:
-                continue
-            widget = item.widget()
-            if widget is not None:
-                widget.deleteLater()
-        self._search_sections = {}
+        self.search_view.clear()
 
     def show_tracklist(self, back_callback=None):
         self.stacked_widget.setCurrentWidget(self.tracklist_widget)
         if back_callback:
             with contextlib.suppress(RuntimeError):
-                self.back_button.clicked.disconnect()
-            self.back_button.clicked.connect(back_callback)
+                self.track_view.back_button.clicked.disconnect()
+            self.track_view.back_button.clicked.connect(back_callback)
 
     def add_search_section(self, result_type: str):
-        section_widget = QFrame()
-        section_widget.setObjectName("searchSection")
-        section_layout = QVBoxLayout(section_widget)
-        section_layout.setContentsMargins(0, 0, 0, 0)
-        section_layout.setSpacing(15)
-
-        header_btn = QPushButton(f"▼ {result_type.capitalize()}s")
-        header_btn.setObjectName("sectionHeader")
-        header_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-
-        grid_widget = QWidget()
-        grid = QGridLayout(grid_widget)
-        grid.setSpacing(20)
-        grid.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
-
-        def toggle_section():
-            is_visible = grid_widget.isVisible()
-            grid_widget.setVisible(not is_visible)
-            header_btn.setText(f"{'▶' if is_visible else '▼'} {result_type.capitalize()}s")
-
-        header_btn.clicked.connect(toggle_section)
-
-        section_layout.addWidget(header_btn)
-        section_layout.addWidget(grid_widget)
-
-        self._search_sections[result_type] = {
-            'widget': section_widget,
-            'grid': grid,
-            'grid_widget': grid_widget
-        }
-
-        self.results_layout.addWidget(section_widget)
+        self.search_view.add_section(result_type)
 
     def add_album_to_results(self, title, artist, image_url=None, result_type='album'):
-        if result_type not in self._search_sections:
-            self.add_search_section(result_type)
-
-        section = self._search_sections[result_type]
-        grid = section['grid']
-        row = grid.count() // 3
-        col = grid.count() % 3
-
-        card = AlbumCard(title, artist)
-        if image_url:
-            self._load_image(image_url, card.cover_label, 176)
-        grid.addWidget(card, row, col)
-        return card
+        return self.search_view.add_album(title, artist, image_url, result_type)
 
     def _load_image(self, url, label, size=176):
         self._image_loader.load(url, label, size)
@@ -485,25 +340,17 @@ class MainWindow(QMainWindow):
 
     def set_album_cover(self, image_url):
         if image_url:
-            self._load_image(image_url, self.album_cover_label, 200)
+            self._image_loader.load(image_url, self.track_view.album_cover_label, 200)
 
     def add_track_to_tracklist(self, track_number, title, duration):
-        track_widget = TrackRow(track_number - 1, title, duration)
-        self.tracklist_layout.addWidget(track_widget)
-        self._track_items.append(track_widget)
-        return track_widget
+        return self.track_view.add_track(track_number, title, duration)
 
     def clear_tracklist(self):
         self._abort_pending_images()
-        while self.tracklist_layout.count():
-            item = self.tracklist_layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
-        self._track_items = []
+        self.track_view.clear()
 
     def highlight_track(self, index: int):
-        for i, item in enumerate(self._track_items):
-            item.set_active(i == index)
+        self.track_view.highlight(index)
 
     def set_current_track(self, title):
         self.current_track_label.setText(title)
