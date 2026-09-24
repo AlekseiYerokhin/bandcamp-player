@@ -45,6 +45,14 @@ sha256sum -c Bandcamp-Player-x86_64.AppImage.sha256
 - **Back navigation** that remembers whether you came from search or an artist page
 - **Single-file AppImage** — no installation, no system Python required
 
+## Limitations
+
+- **No purchase / download** — this is a streaming player; it cannot buy or download releases.
+- **Not all tracks stream** — Bandcamp only exposes streaming URLs for tracks the artist has enabled for preview. Those are shown greyed out.
+- **Search is autocomplete** — the underlying mobile search returns at most ~50 best-match results with no pagination, so there is no "Load More".
+- **No offline mode** — playback requires a network connection and a working link to Bandcamp's media CDN.
+- **MPRIS is playback-only** — no tracklist management or playback-rate control (playback rate is fixed at 1.0).
+
 ## Tech stack
 
 | Layer | Choice |
@@ -73,7 +81,8 @@ sha256sum -c Bandcamp-Player-x86_64.AppImage.sha256
 - `bandcamp_player/core/engine.py` — `QObject` that runs API calls on daemon threads and emits Qt signals
 - `bandcamp_player/core/controller.py` — wires UI events to the engine and player; owns navigation state
 - `bandcamp_player/core/player.py` — libVLC wrapper
-- `bandcamp_player/ui/main_window.py` — the entire UI
+- `bandcamp_player/ui/main_window.py` — window shell: search bar, player bar, stacked central area
+- `bandcamp_player/ui/views.py` — search results, artist discography, and tracklist views
 
 ## Engineering highlights
 
@@ -132,7 +141,11 @@ The script runs PyInstaller, assembles an AppDir (bundling VLC libraries and plu
 │   │   ├── controller.py        # UI <-> engine/player wiring
 │   │   └── player.py            # libVLC audio player
 │   └── ui/
-│       └── main_window.py       # the UI
+│       ├── main_window.py       # window shell (search bar, player bar)
+│       ├── views.py             # search/discography/tracklist views
+│       ├── cards.py             # album cards + track rows
+│       ├── image_loader.py      # cached async cover loading
+│       └── theme.py             # dark stylesheet
 ├── packaging/
 │   ├── AppDir/                  # AppRun + .desktop
 │   └── build-appimage.sh        # AppImage build script
