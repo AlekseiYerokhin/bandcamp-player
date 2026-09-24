@@ -1,8 +1,27 @@
 # Bandcamp Player
 
+[![Release](https://img.shields.io/github/v/release/AlekseiYerokhin/bandcamp-player?label=release&color=0cacd7)](https://github.com/AlekseiYerokhin/bandcamp-player/releases/latest)
+
 A desktop music player for [Bandcamp](https://bandcamp.com), built with **PySide6 (Qt6)** and **libVLC**, shipped as a single-file **AppImage**.
 
 Search Bandcamp, browse an artist's discography, open an album's tracklist, and stream it — with a clean, dark, native-feeling UI.
+
+## Download
+
+Grab the latest AppImage from the [releases page](https://github.com/AlekseiYerokhin/bandcamp-player/releases/latest) — no installation, no system Python or VLC required:
+
+```bash
+wget https://github.com/AlekseiYerokhin/bandcamp-player/releases/latest/download/Bandcamp-Player-x86_64.AppImage
+chmod +x Bandcamp-Player-x86_64.AppImage
+./Bandcamp-Player-x86_64.AppImage
+```
+
+Verify the download against the published checksum:
+
+```bash
+wget https://github.com/AlekseiYerokhin/bandcamp-player/releases/latest/download/Bandcamp-Player-x86_64.AppImage.sha256
+sha256sum -c Bandcamp-Player-x86_64.AppImage.sha256
+```
 
 > [!NOTE]
 > Bandcamp has no public content API, so this app talks to the same undocumented JSON endpoints the official mobile apps use. No scraping, no embedded browser.
