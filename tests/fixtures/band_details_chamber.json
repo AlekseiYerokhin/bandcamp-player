@@ -1,0 +1,104 @@
+{
+ "id": 4199458029,
+ "name": "Chamber",
+ "bio_image_id": 33016061,
+ "bio_image_width": 1586,
+ "bio_image_height": 1983,
+ "bio": "Psychotic Mosh Metal From Nashville, TN",
+ "bandcamp_url": "https://chambertn.bandcamp.com",
+ "sites": [],
+ "discography": [
+  {
+   "item_id": 2242839143,
+   "item_type": "album",
+   "artist_name": null,
+   "band_name": "Chamber",
+   "title": "Tears of Joy",
+   "art_id": 4171759085,
+   "release_date": "30 Oct 2024 00:00:00 GMT",
+   "is_purchasable": true,
+   "band_id": 4199458029
+  },
+  {
+   "item_id": 609345249,
+   "item_type": "album",
+   "artist_name": null,
+   "band_name": "Chamber",
+   "title": "A Love To Kill For",
+   "art_id": 4084618854,
+   "release_date": "14 Jul 2023 00:00:00 GMT",
+   "is_purchasable": true,
+   "band_id": 4199458029
+  },
+  {
+   "item_id": 942510490,
+   "item_type": "album",
+   "artist_name": null,
+   "band_name": "Chamber",
+   "title": "Carved In Stone",
+   "art_id": 4064509394,
+   "release_date": "04 May 2022 00:00:00 GMT",
+   "is_purchasable": true,
+   "band_id": 4199458029
+  },
+  {
+   "item_id": 839941327,
+   "item_type": "album",
+   "artist_name": null,
+   "band_name": "Chamber",
+   "title": "Cost of Sacrifice",
+   "art_id": 2077795359,
+   "release_date": "23 Oct 2020 00:00:00 GMT",
+   "is_purchasable": true,
+   "band_id": 4199458029
+  },
+  {
+   "item_id": 3603225794,
+   "item_type": "album",
+   "artist_name": null,
+   "band_name": "Chamber",
+   "title": "Ripping / Pulling / Tearing",
+   "art_id": 312294043,
+   "release_date": "17 Jul 2019 00:00:00 GMT",
+   "is_purchasable": true,
+   "band_id": 4199458029
+  },
+  {
+   "item_id": 3422365443,
+   "item_type": "album",
+   "artist_name": null,
+   "band_name": "Chamber",
+   "title": "Final Shape / In Search of Truth",
+   "art_id": 1253284380,
+   "release_date": "02 Nov 2018 00:00:00 GMT",
+   "is_purchasable": true,
+   "band_id": 4199458029
+  },
+  {
+   "item_id": 3416499695,
+   "item_type": "album",
+   "artist_name": null,
+   "band_name": "Chamber",
+   "title": "Hatred Softly Spoken",
+   "art_id": 814030060,
+   "release_date": "05 Mar 2018 00:00:00 GMT",
+   "is_purchasable": true,
+   "band_id": 4199458029
+  }
+ ],
+ "location": "Nashville, Tennessee",
+ "header_image_id": null,
+ "shows": [],
+ "navbar_titles": {
+  "m": "music",
+  "p": "merch",
+  "l": "live streams",
+  "a": "artists",
+  "v": "video",
+  "u": "audio",
+  "s": "subscribe",
+  "c": "community"
+ },
+ "merch": [],
+ "artists": []
+}
