@@ -1,5 +1,5 @@
 import logging
-import threading
+from concurrent.futures import ThreadPoolExecutor
 
 from PySide6.QtCore import QObject, Signal
 
@@ -19,28 +19,31 @@ class BandcampEngine(QObject):
         self._search_id = 0
         self._artist_id = 0
         self._album_id = 0
+        self._executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="engine")
 
     def cleanup(self):
-        pass
+        self._executor.shutdown(wait=False, cancel_futures=True)
 
     def search(self, query):
         self._search_id += 1
         search_id = self._search_id
-        threading.Thread(target=self._search_worker, args=(query, search_id), daemon=True).start()
+        self._executor.submit(self._search_worker, query, search_id)
 
     def get_artist_data(self, band_id):
         self._artist_id += 1
         artist_id = self._artist_id
-        threading.Thread(target=self._artist_worker, args=(band_id, artist_id), daemon=True).start()
+        self._executor.submit(self._artist_worker, band_id, artist_id)
 
     def get_album_data(self, band_id, tralbum_id, tralbum_type="a"):
         self._album_id += 1
         album_id = self._album_id
-        threading.Thread(
-            target=self._album_worker,
-            args=(band_id, tralbum_id, tralbum_type, album_id),
-            daemon=True,
-        ).start()
+        self._executor.submit(
+            self._album_worker,
+            band_id,
+            tralbum_id,
+            tralbum_type,
+            album_id,
+        )
 
     def _search_worker(self, query, search_id):
         ok, results, error = True, None, ""
