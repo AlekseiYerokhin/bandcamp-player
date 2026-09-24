@@ -14,6 +14,7 @@ class Controller(QObject):
         self.mpris = mpris
         self._current_band_id: int | None = None
         self._current_album_title = ""
+        self._current_artist = ""
         self._current_art_url = ""
         self._tracks = []
         self._current_track_index = -1
@@ -44,6 +45,7 @@ class Controller(QObject):
         self.window.seek_requested.connect(self._on_seek_requested)
         if self.mpris is not None:
             self.mpris.command_requested.connect(self._on_mpris_command)
+            self.mpris.volume_requested.connect(self._on_mpris_volume)
 
     def _setup_player(self):
         self.player.set_volume(self.window.volume_slider.value())
@@ -124,6 +126,7 @@ class Controller(QObject):
         album_title = data.get('title', 'Unknown Album')
         self.window.album_title_label.setText(album_title)
         self._current_album_title = album_title
+        self._current_artist = data.get('artist', '')
 
         self.window.clear_tracklist()
 
@@ -185,6 +188,7 @@ class Controller(QObject):
 
             self.player.load_and_play(track['url'])
             self.window.set_current_track(track['title'])
+            self.window.set_current_artist(self._current_artist)
             self.window.highlight_track(index)
             self._mpris_track_changed(index)
 
@@ -194,6 +198,7 @@ class Controller(QObject):
         track = self._tracks[index]
         self.mpris.set_track(
             track['title'],
+            artist=self._current_artist or "",
             album=self._current_album_title or "",
             duration_ms=track.get('duration', 0),
             art_url=self._current_art_url or "",
@@ -222,15 +227,17 @@ class Controller(QObject):
         elif command == "seek":
             current = self.player.get_time()
             self.player.set_position(max(0, current + arg // 1000))
-        elif command == "volume":
-            self.player.set_volume(int(arg * 100))
-            self.window.volume_slider.setValue(int(arg * 100))
         elif command == "raise":
             self.window.show()
             self.window.raise_()
             self.window.activateWindow()
         elif command == "quit":
-            self.window.closing.emit()
+            self.window._quit_app()
+
+    def _on_mpris_volume(self, volume: float):
+        value = int(volume * 100)
+        self.player.set_volume(value)
+        self.window.volume_slider.setValue(value)
 
     def _set_mpris_playing(self, playing: bool):
         if self.mpris is not None:
@@ -277,6 +284,7 @@ class Controller(QObject):
         if self._current_track_index < len(self._tracks) - 1:
             self._on_next_clicked()
         else:
+            self._current_track_index = -1
             self.window.set_play_state(False)
             if self.mpris is not None:
                 self.mpris.set_playback("Stopped")
