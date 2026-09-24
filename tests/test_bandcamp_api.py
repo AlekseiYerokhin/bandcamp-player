@@ -143,6 +143,7 @@ def test_band_details_uses_post(api, monkeypatch):
 def test_tralbum_details_normalizes_tracks(api, monkeypatch):
     payload = {
         "title": "A Love To Kill For",
+        "tralbum_artist": "Chamber",
         "art_id": 4084618854,
         "bandcamp_url": "https://chambertn.bandcamp.com/album/a-love-to-kill-for",
         "tracks": [
@@ -156,6 +157,7 @@ def test_tralbum_details_normalizes_tracks(api, monkeypatch):
     album = api.tralbum_details(4199458029, 609345249, "a")
 
     assert album["title"] == "A Love To Kill For"
+    assert album["artist"] == "Chamber"
     assert album["art_id"] == 4084618854
     assert len(album["tracks"]) == 2
     assert album["tracks"][0]["duration"] == 70500  # seconds -> ms

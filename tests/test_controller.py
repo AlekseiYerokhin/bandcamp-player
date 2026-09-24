@@ -194,3 +194,97 @@ def test_album_card_click_connects_signal(harness, qtbot):
     card = win.discography_layout.itemAt(0).widget()
     card.clicked.emit(4199458029, 609345249, "album")
     assert engine.album_calls == [(4199458029, 609345249, "album")]
+
+
+class FakeMpris(QObject):
+    command_requested = Signal(str, int)
+    volume_requested = Signal(float)
+
+    def __init__(self):
+        super().__init__()
+        self.track_args = None
+        self.playback_status = None
+        self.position_ms = None
+
+    def set_track(self, title, artist="", album="", duration_ms=0, art_url=""):
+        self.track_args = (title, artist, album, duration_ms, art_url)
+
+    def set_playback(self, status, metadata=None, position=None):
+        self.playback_status = status
+
+    def set_position_ms(self, ms):
+        self.position_ms = ms
+
+
+@pytest.fixture
+def mpris_harness(window, qtbot):
+    from bandcamp_player.core.controller import Controller
+
+    engine = FakeEngine()
+    player = FakePlayer()
+    mpris = FakeMpris()
+    controller = Controller(window, engine=engine, player=player, mpris=mpris)
+    return controller, engine, player, window, mpris
+
+
+def _load_two_track_album(ctrl):
+    ctrl._on_album_data(True, {
+        "title": "A Love To Kill For",
+        "artist": "Chamber",
+        "art_id": 1,
+        "tracks": [
+            {"title": "Chamber", "duration": 70000, "url": "https://stream/1"},
+            {"title": "Retribution", "duration": 137000, "url": "https://stream/2"},
+        ],
+    }, "")
+
+
+def test_mpris_volume_uses_float_signal(mpris_harness):
+    _ctrl, _engine, player, win, mpris = mpris_harness
+    mpris.volume_requested.emit(0.35)
+    assert player.volume == 35
+    assert win.volume_slider.value() == 35
+    mpris.volume_requested.emit(1.0)
+    assert player.volume == 100
+
+
+def test_mpris_pause_after_last_track_restarts_album(mpris_harness):
+    ctrl, _engine, player, _win, mpris = mpris_harness
+    _load_two_track_album(ctrl)
+    ctrl._play_track(1)
+    ctrl._on_track_ended()
+    assert ctrl._current_track_index == -1
+    ctrl._on_mpris_command("play", 0)
+    assert ctrl._current_track_index == 0
+    assert player.url == "https://stream/1"
+    assert mpris.playback_status == "Playing"
+
+
+def test_mpris_quit_calls_window_quit(window, qtbot, monkeypatch):
+    from bandcamp_player.core.controller import Controller
+
+    engine = FakeEngine()
+    player = FakePlayer()
+    mpris = FakeMpris()
+    controller = Controller(window, engine=engine, player=player, mpris=mpris)
+    quitted = []
+    monkeypatch.setattr(window, "_quit_app", lambda: quitted.append(True))
+    controller._on_mpris_command("quit", 0)
+    assert quitted == [True]
+
+
+def test_artist_name_sent_to_mpris(mpris_harness):
+    ctrl, _engine, _player, _win, mpris = mpris_harness
+    _load_two_track_album(ctrl)
+    ctrl._play_track(0)
+    assert mpris.track_args[1] == "Chamber"
+
+
+def test_pause_command_does_not_resume(mpris_harness):
+    ctrl, _engine, player, _win, mpris = mpris_harness
+    _load_two_track_album(ctrl)
+    ctrl._play_track(0)
+    player._playing = False
+    ctrl._on_mpris_command("pause", 0)
+    assert player.is_playing() is False
+    assert mpris.playback_status == "Paused"
