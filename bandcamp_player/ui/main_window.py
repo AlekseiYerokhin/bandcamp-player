@@ -44,6 +44,26 @@ def _format_ms(ms: int) -> str:
     return f"{minutes}:{seconds:02d}"
 
 
+class ClickableSlider(QSlider):
+    """A slider that jumps to the clicked position on the track."""
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._seek_to_click(event.position().x())
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        if event.buttons() & Qt.MouseButton.LeftButton:
+            self._seek_to_click(event.position().x())
+        super().mouseMoveEvent(event)
+
+    def _seek_to_click(self, x: float):
+        ratio = x / max(1, self.width())
+        value = int(self.minimum() + ratio * (self.maximum() - self.minimum()))
+        self.setValue(value)
+        self.sliderMoved.emit(value)
+
+
 class MainWindow(QMainWindow):
     search_requested = Signal(str)
 
@@ -235,6 +255,14 @@ class MainWindow(QMainWindow):
         self._abort_pending_images()
         self.artist_view.clear()
 
+    def show_discography_placeholder(self, text):
+        self._abort_pending_images()
+        self.artist_view.show_placeholder(text)
+
+    def show_tracklist_placeholder(self, text):
+        self._abort_pending_images()
+        self.track_view.show_placeholder(text)
+
     def _setup_player_bar(self, parent_layout):
         player_bar = QFrame()
         player_bar.setObjectName("playerBar")
@@ -261,7 +289,7 @@ class MainWindow(QMainWindow):
         self.current_track_label.setObjectName("trackLabel")
         self.current_artist_label = QLabel("")
         self.current_artist_label.setObjectName("trackArtistLabel")
-        self.progress_slider = QSlider(Qt.Orientation.Horizontal)
+        self.progress_slider = ClickableSlider(Qt.Orientation.Horizontal)
         self.progress_slider.setObjectName("progressSlider")
         self.progress_slider.setMinimum(0)
         self.progress_slider.setMaximum(0)
@@ -288,6 +316,10 @@ class MainWindow(QMainWindow):
         self.volume_slider.setFixedWidth(100)
         self.volume_slider.valueChanged.connect(self._update_volume_icon)
         self.volume_slider.valueChanged.connect(self.volume_changed.emit)
+        self.volume_slider.valueChanged.connect(self._remember_volume)
+        self.volume_button.clicked.connect(self._toggle_mute)
+        self._muted = False
+        self._pre_mute_volume = 70
         self.volume_layout.addWidget(self.volume_button)
         self.volume_layout.addWidget(self.volume_slider)
 
@@ -318,6 +350,13 @@ class MainWindow(QMainWindow):
     def search_finished(self):
         self.search_button.setEnabled(True)
         self.search_button.setText("Search")
+
+    def show_search_loading(self):
+        self.search_view.show_placeholder("Searching...")
+
+    def show_search_placeholder(self, text):
+        self._abort_pending_images()
+        self.search_view.show_placeholder(text)
 
     def show_status(self, message: str, timeout_ms: int = 5000):
         self.statusBar().showMessage(message, timeout_ms)
@@ -353,8 +392,8 @@ class MainWindow(QMainWindow):
         if image_url:
             self._image_loader.load(image_url, self.track_view.album_cover_label, 200)
 
-    def add_track_to_tracklist(self, track_number, title, duration):
-        return self.track_view.add_track(track_number, title, duration)
+    def add_track_to_tracklist(self, track_number, title, duration, streamable=True):
+        return self.track_view.add_track(track_number, title, duration, streamable=streamable)
 
     def clear_tracklist(self):
         self._abort_pending_images()
@@ -391,6 +430,19 @@ class MainWindow(QMainWindow):
 
     def set_time(self, position: int, duration: int):
         self.time_label.setText(f"{_format_ms(position)} / {_format_ms(duration)}")
+
+    def _toggle_mute(self):
+        if self._muted:
+            self._muted = False
+            self.volume_slider.setValue(self._pre_mute_volume)
+        else:
+            self._muted = True
+            self._pre_mute_volume = self.volume_slider.value()
+            self.volume_slider.setValue(0)
+
+    def _remember_volume(self, value):
+        if not self._muted and value > 0:
+            self._pre_mute_volume = value
 
     def _update_volume_icon(self, value):
         if value == 0:

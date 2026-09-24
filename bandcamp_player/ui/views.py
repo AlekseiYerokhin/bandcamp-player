@@ -109,6 +109,17 @@ class _ScrollingView(QWidget):
     def _build_content_layout(self, container):
         raise NotImplementedError
 
+    def show_placeholder(self, text: str):
+        self.clear()
+        label = QLabel(text)
+        label.setObjectName("placeholder")
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        label.setStyleSheet("color: #b3b3b3; font-size: 15px; padding: 40px;")
+        self._add_placeholder(label)
+
+    def _add_placeholder(self, label):
+        self.content_layout.addWidget(label)
+
 
 class SearchResultsView(_ScrollingView):
     kind = "search"
@@ -225,6 +236,9 @@ class ArtistDiscographyView(_ScrollingView):
             if item.widget():
                 item.widget().deleteLater()
 
+    def _add_placeholder(self, label):
+        self.content_layout.addWidget(label, 0, 0)
+
 
 class TracklistView(_ScrollingView):
     kind = "tracklist"
@@ -260,8 +274,8 @@ class TracklistView(_ScrollingView):
         header_layout.addStretch()
         return header_layout
 
-    def add_track(self, track_number, title, duration):
-        track_widget = TrackRow(track_number - 1, title, duration)
+    def add_track(self, track_number, title, duration, streamable=True):
+        track_widget = TrackRow(track_number - 1, title, duration, streamable=streamable)
         self.content_layout.addWidget(track_widget)
         self._track_items.append(track_widget)
         return track_widget

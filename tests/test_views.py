@@ -63,6 +63,96 @@ def test_views_build_and_clear(qtbot):
     assert track._track_items == []
 
 
+def test_placeholder_appears_in_views(qtbot):
+    from bandcamp_player.ui.image_loader import ImageLoader
+    from bandcamp_player.ui.views import SearchResultsView
+
+    view = SearchResultsView(ImageLoader(), parent=None)
+    qtbot.addWidget(view)
+    view.show_placeholder("No results for x")
+    assert view.content_layout.count() == 1
+    assert "No results" in view.content_layout.itemAt(0).widget().text()
+
+
+def test_track_row_disabled_when_not_streamable(qtbot):
+    from PySide6.QtCore import Qt
+    from PySide6.QtTest import QTest
+
+    from bandcamp_player.ui.cards import TrackRow
+
+    row = TrackRow(0, "No stream", "1:00", streamable=False)
+    qtbot.addWidget(row)
+    row.show()
+    assert row._streamable is False
+    got = []
+    row.clicked.connect(got.append)
+    QTest.mouseClick(row, Qt.MouseButton.LeftButton)
+    assert got == []
+
+    row2 = TrackRow(1, "Ok", "1:00")
+    qtbot.addWidget(row2)
+    row2.show()
+    got2 = []
+    row2.clicked.connect(got2.append)
+    QTest.mouseClick(row2, Qt.MouseButton.LeftButton)
+    assert got2 == [1]
+
+
+def test_track_row_keyboard_activation(qtbot):
+    from PySide6.QtCore import Qt
+    from PySide6.QtTest import QTest
+
+    from bandcamp_player.ui.cards import TrackRow
+
+    row = TrackRow(2, "Ok", "1:00")
+    qtbot.addWidget(row)
+    row.show()
+    row.setFocus()
+    got = []
+    row.clicked.connect(got.append)
+    QTest.keyClick(row, Qt.Key.Key_Return)
+    assert got == [2]
+
+    row_disabled = TrackRow(3, "No", "1:00", streamable=False)
+    qtbot.addWidget(row_disabled)
+    row_disabled.show()
+    got2 = []
+    row_disabled.clicked.connect(got2.append)
+    QTest.keyClick(row_disabled, Qt.Key.Key_Return)
+    assert got2 == []
+
+
+def test_album_card_activates_via_keyboard(qtbot):
+    from PySide6.QtCore import Qt
+    from PySide6.QtTest import QTest
+
+    from bandcamp_player.ui.cards import AlbumCard
+
+    card = AlbumCard("Tears of Joy")
+    card.set_click_data(3, 4, "album")
+    qtbot.addWidget(card)
+    card.show()
+    got = []
+    card.clicked.connect(lambda b, i, t: got.append((b, i, t)))
+    card.setFocus()
+    QTest.keyClick(card, Qt.Key.Key_Return)
+    assert got == [(3, 4, "album")]
+
+
+def test_volume_button_mutes_and_restores(qtbot):
+    from bandcamp_player.ui.main_window import MainWindow
+
+    win = MainWindow()
+    qtbot.addWidget(win)
+    win.volume_slider.setValue(70)
+    win._toggle_mute()
+    assert win.volume_slider.value() == 0
+    assert win._muted is True
+    win._toggle_mute()
+    assert win.volume_slider.value() == 70
+    assert win._muted is False
+
+
 def _fake_card():
     from bandcamp_player.ui.cards import AlbumCard
 

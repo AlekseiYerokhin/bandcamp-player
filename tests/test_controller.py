@@ -166,6 +166,46 @@ def test_search_error_shown_in_status(harness):
     assert "HTTP 503" in win.statusBar().currentMessage()
 
 
+def test_empty_search_shows_no_results_placeholder(harness):
+    ctrl, _engine, _player, win = harness
+    ctrl._on_search_requested("zzzz")
+    assert win.search_view.content_layout.count() == 1
+    ctrl._on_search_results(True, [], "")
+    label = win.search_view.content_layout.itemAt(0).widget()
+    assert 'No results for "zzzz"' in label.text()
+
+
+def test_empty_album_shows_tracklist_placeholder(harness):
+    ctrl, _engine, _player, win = harness
+    ctrl._on_album_data(True, {"title": "A", "tracks": []}, "")
+    assert win.tracklist_layout.count() == 1
+    assert "No tracks" in win.tracklist_layout.itemAt(0).widget().text()
+
+
+def test_empty_artist_shows_discography_placeholder(harness):
+    ctrl, _engine, _player, win = harness
+    ctrl._on_artist_data(True, {"name": "A", "albums": []}, "")
+    assert win.discography_layout.count() == 1
+    assert "No releases" in win.discography_layout.itemAt(0).widget().text()
+
+
+def test_non_streamable_track_is_disabled(harness):
+    ctrl, _engine, player, win = harness
+    ctrl._on_album_data(True, {
+        "title": "A",
+        "tracks": [
+            {"title": "Streamable", "duration": 1000, "url": "u1"},
+            {"title": "No stream", "duration": 1000, "url": ""},
+        ],
+    }, "")
+    row = win.tracklist_layout.itemAt(1).widget()
+    assert row._streamable is False
+    ctrl._play_track(1)
+    assert player.url is None
+    assert ctrl._current_track_index == -1
+    assert "not available" in win.statusBar().currentMessage()
+
+
 def test_playback_error_stops_and_shows_status(harness):
     ctrl, _engine, _player, win = harness
     ctrl._on_playback_error()
@@ -209,7 +249,7 @@ class FakeMpris(QObject):
     def set_track(self, title, artist="", album="", duration_ms=0, art_url=""):
         self.track_args = (title, artist, album, duration_ms, art_url)
 
-    def set_playback(self, status, metadata=None, position=None):
+    def set_playback(self, status, metadata=None):
         self.playback_status = status
 
     def set_position_ms(self, ms):
@@ -288,3 +328,27 @@ def test_pause_command_does_not_resume(mpris_harness):
     ctrl._on_mpris_command("pause", 0)
     assert player.is_playing() is False
     assert mpris.playback_status == "Paused"
+
+
+def test_mpris_set_position_seeks_player(mpris_harness):
+    ctrl, _engine, player, _win, mpris = mpris_harness
+    _load_two_track_album(ctrl)
+    ctrl._on_mpris_command("set_position", 5000000)
+    assert player._time == 5000
+    assert mpris.position_ms == 5000
+
+
+def test_mpris_seek_emits_seeked(mpris_harness):
+    ctrl, _engine, player, _win, mpris = mpris_harness
+    _load_two_track_album(ctrl)
+    player._time = 1000
+    ctrl._on_mpris_command("seek", 2000000)
+    assert player._time == 3000
+    assert mpris.position_ms == 3000
+
+
+def test_ui_seek_emits_seeked(mpris_harness):
+    ctrl, _engine, _player, _win, mpris = mpris_harness
+    _load_two_track_album(ctrl)
+    ctrl._on_progress_moved(15000)
+    assert mpris.position_ms == 15000

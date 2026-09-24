@@ -51,6 +51,11 @@ def test_set_playback_updates_status_only(service):
     assert service._metadata == {}
 
 
+def test_set_position_us_converts_to_microseconds(service):
+    service.set_position_us(5000000)
+    assert service._position == 5000000
+
+
 def test_set_position_ms_converts_to_microseconds(service):
     service.set_position_ms(5000)
     assert service._position == 5000000
@@ -103,6 +108,9 @@ def test_player_interface_readonly_properties(service):
     assert player.PlaybackStatus == "Playing"
     assert player.Volume == 0.5
     assert player.Position == 123
+    assert player.Rate == 1.0
+    assert player.MinimumRate == 1.0
+    assert player.MaximumRate == 1.0
     assert player.CanControl is True
     assert player.CanPlay is True
     assert player.CanPause is True
@@ -120,7 +128,12 @@ def test_commands_notify(service):
     _PlayerInterface(service).Pause()
     _PlayerInterface(service).Next()
     _PlayerInterface(service).Seek(1000000)
-    assert got == [("play", 0), ("pause", 0), ("next", 0), ("seek", 1000000)]
+    _PlayerInterface(service).SetPosition("/org/mpris/MediaPlayer2/Track/1", 5000000)
+    assert got == [("play", 0), ("pause", 0), ("next", 0), ("seek", 1000000), ("set_position", 5000000)]
+
+
+def test_seeked_signal_exists(service):
+    assert hasattr(_PlayerInterface(service), "Seeked")
 
 
 def test_emit_is_noop_without_loop(service):

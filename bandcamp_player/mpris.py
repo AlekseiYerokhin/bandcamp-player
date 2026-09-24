@@ -13,7 +13,7 @@ import threading
 
 from dbus_next import Variant
 from dbus_next.aio import MessageBus
-from dbus_next.service import PropertyAccess, ServiceInterface, dbus_property, method
+from dbus_next.service import PropertyAccess, ServiceInterface, dbus_property, method, signal
 from PySide6.QtCore import QObject, Signal
 
 SERVICE_NAME = "org.mpris.MediaPlayer2.bandcamp_player"
@@ -91,6 +91,18 @@ class _PlayerInterface(ServiceInterface):
         return self._service._position
 
     @dbus_property(access=PropertyAccess.READ)
+    def Rate(self) -> "d":
+        return 1.0
+
+    @dbus_property(access=PropertyAccess.READ)
+    def MinimumRate(self) -> "d":
+        return 1.0
+
+    @dbus_property(access=PropertyAccess.READ)
+    def MaximumRate(self) -> "d":
+        return 1.0
+
+    @dbus_property(access=PropertyAccess.READ)
     def CanControl(self) -> "b":
         return True
 
@@ -145,6 +157,14 @@ class _PlayerInterface(ServiceInterface):
     @method()
     def Seek(self, offset: "x"):
         self._service._notify("seek", offset)
+
+    @method()
+    def SetPosition(self, track_id: "o", position: "x"):
+        self._service._notify("set_position", position)
+
+    @signal()
+    def Seeked(self, position: "x"):
+        """Emitted when the playhead jumps without a direct seek request."""
 
 
 class MprisService(QObject):
@@ -205,9 +225,10 @@ class MprisService(QObject):
             metadata["mpris:length"] = Variant("x", duration_ms * 1000)
         if art_url:
             metadata["mpris:artUrl"] = Variant("s", art_url)
-        self.set_playback("Playing", metadata, position=0)
+        self.set_playback("Playing", metadata)
+        self.set_position_us(0)
 
-    def set_playback(self, status, metadata: dict | None = None, position: int | None = None):
+    def set_playback(self, status, metadata: dict | None = None):
         changes = {}
         if status != self._playback_status:
             self._playback_status = status
@@ -215,14 +236,16 @@ class MprisService(QObject):
         if metadata is not None and metadata != self._metadata:
             self._metadata = metadata
             changes["Metadata"] = metadata
-        if position is not None:
-            self._position = position
-            changes["Position"] = position
         self._emit(changes)
 
+    def set_position_us(self, position_us: int):
+        self._position = position_us
+        if self._loop is not None and self._player_iface is not None:
+            self._loop.call_soon_threadsafe(
+                lambda: self._player_iface.Seeked(position_us))
+
     def set_position_ms(self, position_ms: int):
-        self._position = position_ms * 1000  # MPRIS uses microseconds
-        self._emit({"Position": self._position})
+        self.set_position_us(position_ms * 1000)  # MPRIS uses microseconds
 
     def _emit(self, changes: dict):
         if changes and self._loop is not None and self._player_iface is not None:
