@@ -35,6 +35,12 @@ jobs:
           pip install pyinstaller
           pip install -r requirements.txt
 
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ runner.os }}-release-${{ hashFiles('requirements.txt') }}
+
       - name: Build AppImage
         run: |
           chmod +x packaging/build-appimage.sh
