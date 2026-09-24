@@ -251,6 +251,10 @@ class Controller(QObject):
         elif command == "seek":
             current = self.player.get_time()
             self.player.set_position(max(0, current + arg // 1000))
+            self._mpris_seeked()
+        elif command == "set_position":
+            self.player.set_position(arg // 1000)
+            self._mpris_seeked()
         elif command == "raise":
             self.window.show()
             self.window.raise_()
@@ -262,6 +266,10 @@ class Controller(QObject):
         value = int(volume * 100)
         self.player.set_volume(value)
         self.window.set_volume(value)
+
+    def _mpris_seeked(self):
+        if self.mpris is not None:
+            self.mpris.set_position_ms(self.player.get_time())
 
     def _set_mpris_playing(self, playing: bool):
         if self.mpris is not None:
@@ -321,10 +329,12 @@ class Controller(QObject):
 
     def _on_progress_moved(self, position: int):
         self.player.set_position(position)
+        self._mpris_seeked()
 
     def _on_seek_requested(self, offset_ms: int):
         current = self.player.get_time()
         self.player.set_position(max(0, current + offset_ms))
+        self._mpris_seeked()
 
     def _format_duration(self, ms: int) -> str:
         seconds = ms // 1000

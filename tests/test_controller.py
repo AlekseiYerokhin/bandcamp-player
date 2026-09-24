@@ -249,7 +249,7 @@ class FakeMpris(QObject):
     def set_track(self, title, artist="", album="", duration_ms=0, art_url=""):
         self.track_args = (title, artist, album, duration_ms, art_url)
 
-    def set_playback(self, status, metadata=None, position=None):
+    def set_playback(self, status, metadata=None):
         self.playback_status = status
 
     def set_position_ms(self, ms):
@@ -328,3 +328,27 @@ def test_pause_command_does_not_resume(mpris_harness):
     ctrl._on_mpris_command("pause", 0)
     assert player.is_playing() is False
     assert mpris.playback_status == "Paused"
+
+
+def test_mpris_set_position_seeks_player(mpris_harness):
+    ctrl, _engine, player, _win, mpris = mpris_harness
+    _load_two_track_album(ctrl)
+    ctrl._on_mpris_command("set_position", 5000000)
+    assert player._time == 5000
+    assert mpris.position_ms == 5000
+
+
+def test_mpris_seek_emits_seeked(mpris_harness):
+    ctrl, _engine, player, _win, mpris = mpris_harness
+    _load_two_track_album(ctrl)
+    player._time = 1000
+    ctrl._on_mpris_command("seek", 2000000)
+    assert player._time == 3000
+    assert mpris.position_ms == 3000
+
+
+def test_ui_seek_emits_seeked(mpris_harness):
+    ctrl, _engine, _player, _win, mpris = mpris_harness
+    _load_two_track_album(ctrl)
+    ctrl._on_progress_moved(15000)
+    assert mpris.position_ms == 15000
