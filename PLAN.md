@@ -134,7 +134,7 @@ and the AppImage already runs under WSL2 as a fallback.
   (images) + tray icon need no platform-specific code.
 
 ### Steps
-1. **Verify from source on Windows.** `pip install -r requirements.txt`, then
+1. **Verify from source on Windows.** `pip install .`, then
    `python main.py` with system VLC installed (audio via WASAPI/DirectSound).
 2. **Decide VLC bundling.** (a) require system VLC — smallest installer, but
    users must install VLC; or (b) bundle `libvlc.dll` + a trimmed plugin set —
