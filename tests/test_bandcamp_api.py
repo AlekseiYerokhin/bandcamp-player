@@ -222,6 +222,14 @@ def test_network_error_raises(api, monkeypatch):
         api.search("x")
 
 
+def test_network_error_retries_once_then_succeeds(api, monkeypatch):
+    monkeypatch.setattr(bc.time, "sleep", lambda s: None)
+    err = urllib.error.URLError("dns failure")
+    _patch_urlopen_sequence(monkeypatch, [err, {"results": []}])
+    results = api.search("x")
+    assert results == []
+
+
 def test_invalid_json_raises(api, monkeypatch):
     def _open(req, timeout=None):
         class _Bad(_FakeResponse):
