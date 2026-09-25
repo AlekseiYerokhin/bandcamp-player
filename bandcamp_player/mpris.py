@@ -226,7 +226,7 @@ class MprisService(QObject):
         if art_url:
             metadata["mpris:artUrl"] = Variant("s", art_url)
         self.set_playback("Playing", metadata)
-        self.set_position_us(0)
+        self.set_position_ms(0)
 
     def set_playback(self, status, metadata: dict | None = None):
         changes = {}
@@ -238,14 +238,13 @@ class MprisService(QObject):
             changes["Metadata"] = metadata
         self._emit(changes)
 
-    def set_position_us(self, position_us: int):
-        self._position = position_us
+    def set_position_ms(self, position_ms: int):
+        self._position = position_ms * 1000  # MPRIS uses microseconds
+
+    def emit_seeked(self, position_ms: int):
         if self._loop is not None and self._player_iface is not None:
             self._loop.call_soon_threadsafe(
-                lambda: self._player_iface.Seeked(position_us))
-
-    def set_position_ms(self, position_ms: int):
-        self.set_position_us(position_ms * 1000)  # MPRIS uses microseconds
+                lambda: self._player_iface.Seeked(position_ms * 1000))
 
     def _emit(self, changes: dict):
         if changes and self._loop is not None and self._player_iface is not None:

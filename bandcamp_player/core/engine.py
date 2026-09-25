@@ -48,7 +48,7 @@ class BandcampEngine(QObject):
     def _search_worker(self, query, search_id):
         ok, results, error = True, None, ""
         try:
-            results = self._api.search(query)
+            results = self._api.search(query, include_tracks=True)
         except BandcampAPIError as e:
             ok, error = False, str(e)
             logger.error("Search failed: %s", e)

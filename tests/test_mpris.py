@@ -51,11 +51,6 @@ def test_set_playback_updates_status_only(service):
     assert service._metadata == {}
 
 
-def test_set_position_us_converts_to_microseconds(service):
-    service.set_position_us(5000000)
-    assert service._position == 5000000
-
-
 def test_set_position_ms_converts_to_microseconds(service):
     service.set_position_ms(5000)
     assert service._position == 5000000

@@ -1,14 +1,15 @@
-"""Async image loading with an in-memory cache.
+"""Async image loading with a bounded cache.
 
 Loads cover art in the background, scales it, and applies it to QLabel
-widgets. Caches by URL so revisiting an album/artist page does not re-download
-images. Guards against deleted widgets (shiboken6.isValid) and supports
-aborting all in-flight loads when a view is cleared.
+widgets. Caches by URL in Qt's QPixmapCache (size-limited) so revisiting an
+album/artist page does not re-download images. Guards against deleted widgets
+(shiboken6.isValid) and supports aborting all in-flight loads when a view is
+cleared.
 """
 
 import shiboken6
 from PySide6.QtCore import QObject, Qt, QUrl
-from PySide6.QtGui import QPixmap
+from PySide6.QtGui import QPixmap, QPixmapCache
 from PySide6.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
 
 _USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
@@ -21,7 +22,6 @@ class ImageLoader(QObject):
         self._manager = QNetworkAccessManager(self)
         self._manager.finished.connect(self._on_finished)
         self._pending = {}
-        self._cache = {}
 
     def load(self, url, label, size=176):
         if not url:
@@ -31,8 +31,8 @@ class ImageLoader(QObject):
         qurl = QUrl(url)
         if not qurl.isValid():
             return
-        cached = self._cache.get(url)
-        if cached is not None:
+        cached = QPixmap()
+        if QPixmapCache.find(url, cached):
             self._apply(label, cached, size)
             return
         request = QNetworkRequest(qurl)
@@ -57,7 +57,7 @@ class ImageLoader(QObject):
             if data.size() > 0:
                 pixmap = QPixmap()
                 if pixmap.loadFromData(data):
-                    self._cache[url] = pixmap
+                    QPixmapCache.insert(url, pixmap)
                     self._apply(label, pixmap, size)
         reply.deleteLater()
 

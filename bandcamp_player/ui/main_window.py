@@ -119,7 +119,7 @@ class MainWindow(QMainWindow):
         show_action = QAction("Show", self)
         show_action.triggered.connect(self._show_window)
         quit_action = QAction("Quit", self)
-        quit_action.triggered.connect(self._quit_app)
+        quit_action.triggered.connect(self.quit)
 
         self._tray_menu.addAction(show_action)
         self._tray_menu.addSeparator()
@@ -140,6 +140,9 @@ class MainWindow(QMainWindow):
         self.activateWindow()
 
     def _quit_app(self):
+        self.quit()
+
+    def quit(self):
         self._save_settings()
         self.closing.emit()
         if self._tray_icon is not None:
@@ -324,6 +327,7 @@ class MainWindow(QMainWindow):
         self.volume_layout.addWidget(self.volume_slider)
 
         self.prev_button.clicked.connect(self.previous_requested.emit)
+        self.play_pause_button.clicked.connect(self.play_pause_requested.emit)
         self.next_button.clicked.connect(self.next_requested.emit)
         self.progress_slider.sliderMoved.connect(self.progress_moved.emit)
 
@@ -437,7 +441,7 @@ class MainWindow(QMainWindow):
             self.volume_slider.setValue(self._pre_mute_volume)
         else:
             self._muted = True
-            self._pre_mute_volume = self.volume_slider.value()
+            self._pre_mute_volume = self.volume_slider.value() or self._pre_mute_volume
             self.volume_slider.setValue(0)
 
     def _remember_volume(self, value):

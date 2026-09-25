@@ -66,9 +66,8 @@ class Controller(QObject):
         self.window.search_finished()
 
         if not success:
-            self.window.show_status(error or "Search failed")
             self.window.show_search_results()
-            self.window.show_search_placeholder(f'No results for "{self._last_query}"')
+            self.window.show_search_placeholder(error or "Search failed")
             return
 
         self._search_results = {'album': [], 'track': [], 'artist': []}
@@ -109,6 +108,8 @@ class Controller(QObject):
     def _on_result_clicked(self, band_id, item_id, result_type):
         if result_type == 'album':
             self._on_album_clicked(band_id, item_id, 'a')
+        elif result_type == 'track':
+            self._on_album_clicked(band_id, item_id, 't')
         elif result_type == 'artist':
             self._on_artist_clicked(band_id)
 
@@ -260,7 +261,7 @@ class Controller(QObject):
             self.window.raise_()
             self.window.activateWindow()
         elif command == "quit":
-            self.window._quit_app()
+            self.window.quit()
 
     def _on_mpris_volume(self, volume: float):
         value = int(volume * 100)
@@ -269,7 +270,7 @@ class Controller(QObject):
 
     def _mpris_seeked(self):
         if self.mpris is not None:
-            self.mpris.set_position_ms(self.player.get_time())
+            self.mpris.emit_seeked(self.player.get_time())
 
     def _set_mpris_playing(self, playing: bool):
         if self.mpris is not None:
