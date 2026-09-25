@@ -32,17 +32,17 @@ jobs:
             libgl1 \
             libxkbcommon0
 
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install pyinstaller
-          pip install .
-
       - name: Cache pip
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
           key: pip-${{ runner.os }}-appimage-${{ hashFiles('pyproject.toml') }}
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+          pip install .
 
       - name: Build AppImage
         run: |

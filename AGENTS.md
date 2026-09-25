@@ -40,13 +40,14 @@ main.py -> Controller -> BandcampEngine -> BandcampAPI  (data, worker threads)
 - `bandcamp_player/core/bandcamp_api.py` — **pure, Qt-free** API client. All HTTP lives
   here. Functions: `search`, `band_details`, `tralbum_details`; normalizers
   return plain dicts. Raises `BandcampAPIError` on any failure.
-- `bandcamp_player/core/engine.py` — `QObject`; runs each API call on a daemon thread and
-  emits `search_results_ready` / `album_data_ready` / `artist_data_ready`
-  (`bool, payload`). Never block the GUI thread here.
+- `bandcamp_player/core/engine.py` — `QObject`; runs each API call on a bounded
+  `ThreadPoolExecutor` and emits `search_results_ready` / `album_data_ready` /
+  `artist_data_ready` (`bool, payload`). Never block the GUI thread here.
 - `bandcamp_player/core/controller.py` — wires UI events to engine/player; owns navigation
   state (`_last_view`, `_current_band_id`, `_tracks`).
 - `bandcamp_player/core/player.py` — thin libVLC wrapper.
-- `bandcamp_player/ui/main_window.py` — the entire UI (cards, sections, tracklist, player bar).
+- `bandcamp_player/ui/main_window.py` — window shell (search bar, player bar,
+  stacked central area); the views live in `ui/views.py`, cards in `ui/cards.py`.
 
 ## Conventions
 

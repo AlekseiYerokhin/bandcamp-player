@@ -34,7 +34,7 @@ sha256sum -c Bandcamp-Player-x86_64.AppImage.sha256
 
 ## Features
 
-- **Search** artists and albums across Bandcamp
+- **Search** artists, albums, and tracks across Bandcamp
 - **Artist pages** with bio, photo, and full discography
 - **Album / track pages** with tracklist, durations, and cover art
 - **Streaming playback** with play/pause, next/previous, millisecond-accurate seek, volume, and elapsed/total time
@@ -78,7 +78,7 @@ sha256sum -c Bandcamp-Player-x86_64.AppImage.sha256
 ```
 
 - `bandcamp_player/core/bandcamp_api.py` — pure, Qt-free API client (search, artist, album), with retry + throttling
-- `bandcamp_player/core/engine.py` — `QObject` that runs API calls on daemon threads and emits Qt signals
+- `bandcamp_player/core/engine.py` — `QObject` that runs API calls on a thread pool and emits Qt signals
 - `bandcamp_player/core/controller.py` — wires UI events to the engine and player; owns navigation state
 - `bandcamp_player/core/player.py` — libVLC wrapper
 - `bandcamp_player/ui/main_window.py` — window shell: search bar, player bar, stacked central area

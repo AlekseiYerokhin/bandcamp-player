@@ -14,7 +14,7 @@ def test_stale_search_response_is_dropped(monkeypatch):
     engine = BandcampEngine()
     emitted = []
 
-    def fake_search(query):
+    def fake_search(query, include_tracks=False):
         if query == "slow":
             time.sleep(0.3)
             return [{"type": "album", "title": "slow"}]
@@ -73,7 +73,7 @@ def test_search_failure_carries_error_message(monkeypatch):
     engine = BandcampEngine()
     emitted = []
 
-    def fail_search(query):
+    def fail_search(query, include_tracks=False):
         raise BandcampAPIError("HTTP 503")
 
     monkeypatch.setattr(engine._api, "search", fail_search)
