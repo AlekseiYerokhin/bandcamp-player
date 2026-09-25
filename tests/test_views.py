@@ -153,6 +153,117 @@ def test_volume_button_mutes_and_restores(qtbot):
     assert win._muted is False
 
 
+def test_volume_button_unmutes_from_zero(qtbot):
+    from bandcamp_player.ui.main_window import MainWindow
+
+    win = MainWindow()
+    qtbot.addWidget(win)
+    win.volume_slider.setValue(0)
+    win._toggle_mute()
+    assert win._muted is True
+    win._toggle_mute()
+    assert win.volume_slider.value() == 70
+
+
+def test_track_row_keeps_grey_after_highlight(qtbot):
+    from bandcamp_player.ui.cards import TrackRow
+
+    row = TrackRow(0, "No stream", "1:00", streamable=False)
+    qtbot.addWidget(row)
+    row.set_streamable(False)
+    assert row.property("disabled") is True
+    row.set_active(False)
+    assert row.property("disabled") is True
+    assert row._streamable is False
+
+
+def test_play_pause_click_drives_player(qtbot):
+    """Integration: a real click on the play/pause button must reach the player.
+
+    Regression guard for the P2 signal refactor that left the button unwired
+    (Space worked via shortcut, clicks did nothing).
+    """
+    from PySide6.QtCore import QObject, Qt, Signal
+    from PySide6.QtTest import QTest
+
+    from bandcamp_player.core.controller import Controller
+    from bandcamp_player.ui.main_window import MainWindow
+
+    class FakeEngine(QObject):
+        search_results_ready = Signal(bool, list, str)
+        album_data_ready = Signal(bool, dict, str)
+        artist_data_ready = Signal(bool, dict, str)
+
+        def search(self, q):
+            pass
+
+        def get_artist_data(self, b):
+            pass
+
+        def get_album_data(self, *a):
+            pass
+
+        def cleanup(self):
+            pass
+
+    class FakePlayer(QObject):
+        position_changed = Signal(int)
+        playback_state_changed = Signal(int)
+        track_ended = Signal()
+        playback_error = Signal()
+
+        def __init__(self):
+            super().__init__()
+            self._playing = False
+            self._time = 0
+
+        def load_and_play(self, url):
+            self._playing = True
+
+        def play(self):
+            self._playing = True
+
+        def pause(self):
+            self._playing = False
+
+        def stop(self):
+            self._playing = False
+
+        def set_position(self, ms):
+            self._time = ms
+
+        def is_playing(self):
+            return self._playing
+
+        def get_length(self):
+            return 0
+
+        def get_time(self):
+            return self._time
+
+        def set_volume(self, v):
+            pass
+
+        def cleanup(self):
+            pass
+
+    win = MainWindow()
+    qtbot.addWidget(win)
+    player = FakePlayer()
+    ctrl = Controller(win, engine=FakeEngine(), player=player)
+    win.show()
+
+    ctrl._on_album_data(True, {
+        "title": "A",
+        "tracks": [{"title": "t1", "duration": 1000, "url": "u1"}],
+    }, "")
+
+    QTest.mouseClick(win.play_pause_button, Qt.MouseButton.LeftButton)
+    assert player.is_playing() is True
+    QTest.mouseClick(win.play_pause_button, Qt.MouseButton.LeftButton)
+    assert player.is_playing() is False
+
+
 def _fake_card():
     from bandcamp_player.ui.cards import AlbumCard
 

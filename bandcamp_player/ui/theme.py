@@ -90,6 +90,17 @@ QStatusBar {
     background-color: #282828;
     border: 1px solid #0cacd7;
 }
+#trackItem #trackTitle {
+    color: #ffffff;
+    font-size: 14px;
+    background: transparent;
+}
+#trackItem[active="true"] #trackTitle {
+    color: #0cacd7;
+}
+#trackItem[disabled="true"] #trackTitle {
+    color: #666666;
+}
 #trackItem[disabled="true"]:hover {
     background-color: transparent;
 }

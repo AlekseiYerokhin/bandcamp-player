@@ -162,8 +162,10 @@ def test_track_ended_advances(harness):
 
 def test_search_error_shown_in_status(harness):
     ctrl, _engine, _player, win = harness
+    ctrl._on_search_requested("chamber")
     ctrl._on_search_results(False, [], "HTTP 503 Service Unavailable")
-    assert "HTTP 503" in win.statusBar().currentMessage()
+    label = win.search_view.content_layout.itemAt(0).widget()
+    assert "HTTP 503" in label.text()
 
 
 def test_empty_search_shows_no_results_placeholder(harness):
@@ -236,6 +238,18 @@ def test_album_card_click_connects_signal(harness, qtbot):
     assert engine.album_calls == [(4199458029, 609345249, "album")]
 
 
+def test_track_search_result_fetches_tralbum(harness):
+    ctrl, engine, _player, win = harness
+    ctrl._on_search_results(True, [
+        {"type": "track", "title": "Chamber", "artist": "Chamber",
+         "band_id": 4199458029, "id": 891815764, "image_url": "", "url": ""},
+    ], "")
+    assert win.results_layout.count() == 1  # one 'Tracks' section
+    card = win.search_view.sections["track"]["grid"].itemAt(0).widget()
+    card.clicked.emit(4199458029, 891815764, "track")
+    assert engine.album_calls == [(4199458029, 891815764, "t")]
+
+
 class FakeMpris(QObject):
     command_requested = Signal(str, int)
     volume_requested = Signal(float)
@@ -245,6 +259,7 @@ class FakeMpris(QObject):
         self.track_args = None
         self.playback_status = None
         self.position_ms = None
+        self.seeked_ms = None
 
     def set_track(self, title, artist="", album="", duration_ms=0, art_url=""):
         self.track_args = (title, artist, album, duration_ms, art_url)
@@ -254,6 +269,9 @@ class FakeMpris(QObject):
 
     def set_position_ms(self, ms):
         self.position_ms = ms
+
+    def emit_seeked(self, ms):
+        self.seeked_ms = ms
 
 
 @pytest.fixture
@@ -308,7 +326,7 @@ def test_mpris_quit_calls_window_quit(window, qtbot, monkeypatch):
     mpris = FakeMpris()
     controller = Controller(window, engine=engine, player=player, mpris=mpris)
     quitted = []
-    monkeypatch.setattr(window, "_quit_app", lambda: quitted.append(True))
+    monkeypatch.setattr(window, "quit", lambda: quitted.append(True))
     controller._on_mpris_command("quit", 0)
     assert quitted == [True]
 
@@ -335,7 +353,7 @@ def test_mpris_set_position_seeks_player(mpris_harness):
     _load_two_track_album(ctrl)
     ctrl._on_mpris_command("set_position", 5000000)
     assert player._time == 5000
-    assert mpris.position_ms == 5000
+    assert mpris.seeked_ms == 5000
 
 
 def test_mpris_seek_emits_seeked(mpris_harness):
@@ -344,11 +362,19 @@ def test_mpris_seek_emits_seeked(mpris_harness):
     player._time = 1000
     ctrl._on_mpris_command("seek", 2000000)
     assert player._time == 3000
-    assert mpris.position_ms == 3000
+    assert mpris.seeked_ms == 3000
 
 
 def test_ui_seek_emits_seeked(mpris_harness):
     ctrl, _engine, _player, _win, mpris = mpris_harness
     _load_two_track_album(ctrl)
     ctrl._on_progress_moved(15000)
-    assert mpris.position_ms == 15000
+    assert mpris.seeked_ms == 15000
+
+
+def test_position_tick_does_not_emit_seeked(mpris_harness):
+    ctrl, _engine, _player, _win, mpris = mpris_harness
+    _load_two_track_album(ctrl)
+    ctrl._on_position_changed(12000)
+    assert mpris.position_ms == 12000
+    assert mpris.seeked_ms is None

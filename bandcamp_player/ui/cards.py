@@ -65,7 +65,7 @@ class AlbumCard(QFrame):
         super().mousePressEvent(event)
 
     def keyPressEvent(self, event):
-        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space):
+        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
             self.clicked.emit(self.band_id, self.item_id, self.item_type)
             event.accept()
         else:
@@ -95,7 +95,7 @@ class TrackRow(QFrame):
         number_label.setStyleSheet("color: #b3b3b3; font-size: 14px; background: transparent;")
 
         self._title_label = QLabel(title)
-        self._title_label.setStyleSheet("color: #ffffff; font-size: 14px; background: transparent;")
+        self._title_label.setObjectName("trackTitle")
 
         duration_label = QLabel(duration)
         duration_label.setStyleSheet("color: #b3b3b3; font-size: 13px; background: transparent;")
@@ -110,17 +110,13 @@ class TrackRow(QFrame):
     def set_streamable(self, streamable: bool):
         self._streamable = streamable
         self.setCursor(Qt.CursorShape.PointingHandCursor if streamable else Qt.CursorShape.ForbiddenCursor)
-        if not streamable:
-            self._title_label.setStyleSheet("color: #666666; font-size: 14px; background: transparent;")
-            self.setProperty("disabled", True)
-            self.style().unpolish(self)
-            self.style().polish(self)
+        self.setProperty("disabled", not streamable)
+        self.style().unpolish(self)
+        self.style().polish(self)
 
     def set_active(self, active: bool):
         self._active = active
         self.setProperty("active", active)
-        color = "#0cacd7" if active else "#ffffff"
-        self._title_label.setStyleSheet(f"color: {color}; font-size: 14px; background: transparent;")
         self.style().unpolish(self)
         self.style().polish(self)
 
@@ -130,7 +126,7 @@ class TrackRow(QFrame):
         super().mousePressEvent(event)
 
     def keyPressEvent(self, event):
-        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space):
+        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
             if self._streamable:
                 self.clicked.emit(self._index)
             event.accept()
