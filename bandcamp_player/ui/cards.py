@@ -60,9 +60,10 @@ class AlbumCard(QFrame):
         self.item_id = item_id
         self.item_type = item_type
 
-    def mousePressEvent(self, event):
-        self.clicked.emit(self.band_id, self.item_id, self.item_type)
-        super().mousePressEvent(event)
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.clicked.emit(self.band_id, self.item_id, self.item_type)
+        super().mouseReleaseEvent(event)
 
     def keyPressEvent(self, event):
         if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
@@ -120,10 +121,10 @@ class TrackRow(QFrame):
         self.style().unpolish(self)
         self.style().polish(self)
 
-    def mousePressEvent(self, event):
-        if self._streamable:
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton and self._streamable:
             self.clicked.emit(self._index)
-        super().mousePressEvent(event)
+        super().mouseReleaseEvent(event)
 
     def keyPressEvent(self, event):
         if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):

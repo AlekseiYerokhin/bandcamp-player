@@ -230,6 +230,22 @@ def test_network_error_retries_once_then_succeeds(api, monkeypatch):
     assert results == []
 
 
+def test_timeout_retries_once_then_succeeds(api, monkeypatch):
+    monkeypatch.setattr(bc.time, "sleep", lambda s: None)
+    err = TimeoutError("timed out")
+    _patch_urlopen_sequence(monkeypatch, [err, {"results": []}])
+    results = api.search("x")
+    assert results == []
+
+
+def test_timeout_raises_after_retries(api, monkeypatch):
+    monkeypatch.setattr(bc.time, "sleep", lambda s: None)
+    err = TimeoutError("timed out")
+    _patch_urlopen_sequence(monkeypatch, [err, err])
+    with pytest.raises(bc.BandcampAPIError, match="Network timeout"):
+        api.search("x")
+
+
 def test_invalid_json_raises(api, monkeypatch):
     def _open(req, timeout=None):
         class _Bad(_FakeResponse):
