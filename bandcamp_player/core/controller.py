@@ -3,6 +3,7 @@ from PySide6.QtCore import QObject
 from .bandcamp_api import BandcampAPI
 from .engine import BandcampEngine
 from .player import AudioPlayer
+from .queue import PlaybackQueue
 
 
 class Controller(QObject):
@@ -13,15 +14,24 @@ class Controller(QObject):
         self.player = player or AudioPlayer()
         self.mpris = mpris
         self._current_band_id: int | None = None
+        self._current_tralbum_id: int | None = None
+        self._current_tralbum_type = 'a'
         self._current_album_title = ""
         self._current_artist = ""
         self._current_art_url = ""
-        self._tracks = []
-        self._current_track_index = -1
-        self._last_view = 'search'
+
+        self._view_tracks: list[dict] = []
+        self._view_album_key: tuple | None = None
+        self._queue = PlaybackQueue()
+        self._queue_album_key: tuple | None = None
+        self._playing = False
+        self._refreshing_queue = False
+        self._nav_stack: list[str] = ['search']
 
         self._search_results = {'album': [], 'track': [], 'artist': []}
         self._last_query = ""
+
+        self._mpris_commands = self._setup_mpris_commands()
 
         self._connect_signals()
         self._setup_player()
@@ -29,6 +39,7 @@ class Controller(QObject):
     def _connect_signals(self):
         self.window.closing.connect(self._on_window_closing)
         self.window.search_requested.connect(self._on_search_requested)
+        self.window.back_requested.connect(self._on_back)
         self.engine.search_results_ready.connect(self._on_search_results)
         self.engine.album_data_ready.connect(self._on_album_data)
         self.engine.artist_data_ready.connect(self._on_artist_data)
@@ -56,7 +67,7 @@ class Controller(QObject):
         self.player.cleanup()
 
     def _on_search_requested(self, query: str):
-        self._last_view = 'search'
+        self._nav_stack = ['search']
         self._last_query = query
         self.window.clear_results()
         self.window.show_search_loading()
@@ -115,6 +126,8 @@ class Controller(QObject):
 
     def _on_album_clicked(self, band_id, tralbum_id, tralbum_type='a'):
         self._current_band_id = band_id
+        self._current_tralbum_id = tralbum_id
+        self._current_tralbum_type = tralbum_type
         self.window.show_tracklist_placeholder("Loading tracklist...")
         self.engine.get_album_data(band_id, tralbum_id, tralbum_type)
 
@@ -125,6 +138,15 @@ class Controller(QObject):
 
     def _on_album_data(self, success: bool, data: dict, error: str = ""):
         if success:
+            if self._refreshing_queue:
+                self._refreshing_queue = False
+                self._refresh_queue_urls(data)
+                track = self._queue.current()
+                if track and track.get('url'):
+                    self._play_current()
+                else:
+                    self.window.show_status("Playback error")
+                return
             self._display_album(data)
         else:
             self.window.show_status(error or "Failed to load album")
@@ -148,35 +170,36 @@ class Controller(QObject):
         if art_id:
             self.window.set_album_cover(self._current_art_url)
 
-        self._tracks = []
-        self._current_track_index = -1
         track_list = data.get('tracks', [])
-
+        self._view_tracks = []
         for i, track in enumerate(track_list, 1):
             title = track.get('title', 'Unknown')
             duration_ms = int(track.get('duration', 0))
             duration_str = self._format_duration(duration_ms)
             url = track.get('url', '')
-            streamable = bool(url)
 
-            self._tracks.append({
+            self._view_tracks.append({
                 'title': title,
                 'url': url,
-                'duration': duration_ms
+                'duration': duration_ms,
+                'track_num': i,
             })
 
-            track_widget = self.window.add_track_to_tracklist(i, title, duration_str, streamable=streamable)
+            track_widget = self.window.add_track_to_tracklist(i, title, duration_str, streamable=bool(url))
             track_widget.clicked.connect(self._play_track)
 
         if not track_list:
             self.window.show_tracklist_placeholder("No tracks to play")
 
-        back_callback = self._go_back_to_artist if self._last_view == 'artist' else self.window.show_search_results
-        self.window.show_tracklist(back_callback)
+        self._view_album_key = (self._current_band_id, self._current_tralbum_id, self._current_tralbum_type)
+        self.window.highlight_track(-1)
+        self._nav_stack.append('album')
+        self.window.show_tracklist()
 
     def _display_artist_discography(self, data: dict):
         artist_name = data.get('name', 'Unknown Artist')
         self.window.set_artist_name(artist_name)
+        self.window.set_artist_bio(data.get('bio', ''))
 
         self.window.clear_discography()
 
@@ -199,28 +222,64 @@ class Controller(QObject):
         if not albums:
             self.window.show_discography_placeholder("No releases found")
 
-        self._last_view = 'artist'
+        if self._nav_stack[-1:] != ['artist']:
+            self._nav_stack.append('artist')
         self.window.show_artist_discography()
 
+    def _on_back(self):
+        if len(self._nav_stack) > 1:
+            self._nav_stack.pop()
+        target = self._nav_stack[-1] if self._nav_stack else 'search'
+        if target == 'artist':
+            self.window.show_artist_discography()
+        else:
+            self._nav_stack = ['search']
+            self.window.show_search_results()
+
     def _play_track(self, index: int):
-        if not 0 <= index < len(self._tracks):
+        if not 0 <= index < len(self._view_tracks):
             return
-        track = self._tracks[index]
+        track = self._view_tracks[index]
         if not track.get('url'):
             self.window.show_status("This track is not available for streaming")
             return
-        self._current_track_index = index
+        self._queue.load(self._view_tracks, index)
+        self._queue_album_key = self._view_album_key
+        self._play_current()
 
+    def _play_current(self):
+        track = self._queue.current()
+        if track is None:
+            return
+        if not track.get('url'):
+            self.window.show_status("This track is not available for streaming")
+            return
         self.player.load_and_play(track['url'])
+        self._playing = True
         self.window.set_current_track(track['title'])
         self.window.set_current_artist(self._current_artist)
-        self.window.highlight_track(index)
-        self._mpris_track_changed(index)
+        if self._queue_album_key == self._view_album_key:
+            self.window.highlight_track(self._queue.index)
+        else:
+            self.window.highlight_track(-1)
+        self._mpris_track_changed(track)
+        self._update_mpris_navigation()
 
-    def _mpris_track_changed(self, index: int):
+    def _start_or_resume(self):
+        if self._queue.current() is not None:
+            self.player.play()
+            self._playing = True
+            self._set_mpris_playing(True)
+            return
+        if self._queue.tracks:
+            self._queue.load(self._queue.tracks, 0)
+            self._play_current()
+        elif self._view_tracks:
+            self._play_track(0)
+
+    def _mpris_track_changed(self, track: dict):
         if self.mpris is None:
             return
-        track = self._tracks[index]
         self.mpris.set_track(
             track['title'],
             artist=self._current_artist or "",
@@ -230,38 +289,55 @@ class Controller(QObject):
         )
         self.mpris.set_playback("Playing")
 
+    def _update_mpris_navigation(self):
+        if self.mpris is not None:
+            self.mpris.set_navigation(self._queue.has_next(), self._queue.has_previous())
+
     def _on_mpris_command(self, command: str, arg: int):
-        if command == "play":
-            if self._current_track_index == -1 and self._tracks:
-                self._play_track(0)
-            else:
-                self.player.play()
-                self._set_mpris_playing(True)
-        elif command == "pause":
-            self.player.pause()
-            self._set_mpris_playing(False)
-        elif command == "play_pause":
-            self._on_play_pause_clicked()
-        elif command == "next":
-            self._on_next_clicked()
-        elif command == "previous":
-            self._on_prev_clicked()
-        elif command == "stop":
-            self.player.stop()
-            self._set_mpris_playing(False)
-        elif command == "seek":
-            current = self.player.get_time()
-            self.player.set_position(max(0, current + arg // 1000))
-            self._mpris_seeked()
-        elif command == "set_position":
-            self.player.set_position(arg // 1000)
-            self._mpris_seeked()
-        elif command == "raise":
-            self.window.show()
-            self.window.raise_()
-            self.window.activateWindow()
-        elif command == "quit":
-            self.window.quit()
+        handler = self._mpris_commands.get(command)
+        if handler is not None:
+            handler(arg)
+
+    def _setup_mpris_commands(self) -> dict:
+        return {
+            "play": self._mpris_play,
+            "pause": self._mpris_pause,
+            "play_pause": lambda arg: self._on_play_pause_clicked(),
+            "next": lambda arg: self._on_next_clicked(),
+            "previous": lambda arg: self._on_prev_clicked(),
+            "stop": self._mpris_stop,
+            "seek": self._mpris_seek,
+            "set_position": self._mpris_set_position,
+            "raise": self._mpris_raise,
+            "quit": lambda arg: self.window.quit(),
+        }
+
+    def _mpris_play(self, arg):
+        self._start_or_resume()
+
+    def _mpris_pause(self, arg):
+        self.player.pause()
+        self._playing = False
+        self._set_mpris_playing(False)
+
+    def _mpris_stop(self, arg):
+        self.player.stop()
+        self._playing = False
+        self._set_mpris_playing(False)
+
+    def _mpris_seek(self, arg):
+        current = self.player.get_time()
+        self.player.set_position(max(0, current + arg // 1000))
+        self._mpris_seeked()
+
+    def _mpris_set_position(self, arg):
+        self.player.set_position(arg // 1000)
+        self._mpris_seeked()
+
+    def _mpris_raise(self, arg):
+        self.window.show()
+        self.window.raise_()
+        self.window.activateWindow()
 
     def _on_mpris_volume(self, volume: float):
         value = int(volume * 100)
@@ -276,27 +352,28 @@ class Controller(QObject):
         if self.mpris is not None:
             self.mpris.set_playback("Playing" if playing else "Paused")
 
-    def _go_back_to_artist(self):
-        self.window.show_artist_discography()
-
     def _on_play_pause_clicked(self):
-        if self.player.is_playing():
+        if self._playing:
             self.player.pause()
+            self._playing = False
             self._set_mpris_playing(False)
         else:
-            if self._current_track_index == -1 and self._tracks:
-                self._play_track(0)
-            else:
-                self.player.play()
-                self._set_mpris_playing(True)
+            self._start_or_resume()
 
     def _on_prev_clicked(self):
-        if self._current_track_index > 0:
-            self._play_track(self._current_track_index - 1)
+        if self.player.get_time() > 3000:
+            self.player.set_position(0)
+            self._mpris_seeked()
+        elif self._queue.has_previous():
+            self._queue.previous()
+            self._play_current()
+        else:
+            self.player.set_position(0)
 
     def _on_next_clicked(self):
-        if self._current_track_index < len(self._tracks) - 1:
-            self._play_track(self._current_track_index + 1)
+        nxt = self._queue.next()
+        if nxt is not None:
+            self._play_current()
 
     def _on_volume_changed(self, value: int):
         self.player.set_volume(value)
@@ -310,23 +387,40 @@ class Controller(QObject):
             self.mpris.set_position_ms(position)
 
     def _on_playback_state_changed(self, state):
-        is_playing = state == 1
-        self.window.set_play_state(is_playing)
+        self._playing = state == 1
+        self.window.set_play_state(self._playing)
 
     def _on_track_ended(self):
-        if self._current_track_index < len(self._tracks) - 1:
-            self._on_next_clicked()
+        nxt = self._queue.next()
+        if nxt is not None:
+            self._play_current()
         else:
-            self._current_track_index = -1
+            self._queue.reset()
+            self._playing = False
             self.window.set_play_state(False)
+            self._update_mpris_navigation()
             if self.mpris is not None:
                 self.mpris.set_playback("Stopped")
 
     def _on_playback_error(self):
+        self._playing = False
         self.window.set_play_state(False)
+        self._set_mpris_playing(False)
+        if self._queue_album_key and self._queue.index >= 0:
+            self._refreshing_queue = True
+            band_id, tralbum_id, tralbum_type = self._queue_album_key
+            self.engine.get_album_data(band_id, tralbum_id, tralbum_type)
+            return
         self.window.show_status("Playback error")
-        if self.mpris is not None:
-            self.mpris.set_playback("Stopped")
+
+    def _refresh_queue_urls(self, data: dict):
+        """Re-resolve stream URLs from a fresh album fetch (stale tokens)."""
+        fresh_urls = [t.get('url', '') for t in data.get('tracks', [])]
+        for i, track in enumerate(self._queue.tracks):
+            if i < len(fresh_urls) and fresh_urls[i]:
+                track['url'] = fresh_urls[i]
+        if self._queue_album_key == self._view_album_key:
+            self._view_tracks = self._queue.tracks
 
     def _on_progress_moved(self, position: int):
         self.player.set_position(position)

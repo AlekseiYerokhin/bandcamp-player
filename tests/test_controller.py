@@ -97,7 +97,7 @@ def test_search_routes_to_engine(harness):
     ctrl, engine, _player, _win = harness
     ctrl._on_search_requested("Chamber")
     assert engine.searches == ["Chamber"]
-    assert ctrl._last_view == "search"
+    assert ctrl._nav_stack == ["search"]
 
 
 def test_artist_click_fetches_discography(harness):
@@ -110,7 +110,7 @@ def test_artist_click_fetches_discography(harness):
         "image_url": "",
         "albums": [{"title": "Tears of Joy", "item_id": 1, "item_type": "album", "image_url": ""}],
     }, "")
-    assert ctrl._last_view == "artist"
+    assert ctrl._nav_stack[-1] == "artist"
     assert win.discography_layout.count() == 1
 
 
@@ -128,21 +128,55 @@ def test_album_flow_and_track_play(harness):
             {"title": "Retribution", "duration": 137000, "url": "https://stream/2"},
         ],
     }, "")
-    assert len(ctrl._tracks) == 2
+    assert len(ctrl._view_tracks) == 2
     assert win.tracklist_layout.count() == 2
 
     ctrl._play_track(1)
-    assert ctrl._current_track_index == 1
+    assert ctrl._queue.index == 1
     assert player.url == "https://stream/2"
 
 
-def test_back_navigation_resets_on_search(harness):
-    ctrl, _engine, _player, _win = harness
+def test_back_navigation_uses_stack(harness):
+    ctrl, _engine, _player, win = harness
     ctrl._on_artist_clicked(1)
     ctrl._on_artist_data(True, {"name": "A", "image_url": "", "albums": []}, "")
-    assert ctrl._last_view == "artist"
-    ctrl._on_search_requested("x")
-    assert ctrl._last_view == "search"
+    assert ctrl._nav_stack[-1] == "artist"
+    ctrl._on_back()
+    assert ctrl._nav_stack == ["search"]
+    assert win.stacked_widget.currentWidget() == win.search_results_widget
+
+
+def test_back_from_album_goes_to_artist(harness):
+    ctrl, _engine, _player, win = harness
+    ctrl._on_artist_clicked(1)
+    ctrl._on_artist_data(True, {"name": "A", "image_url": "", "albums": []}, "")
+    ctrl._on_album_data(True, {"title": "X", "tracks": []}, "")
+    assert ctrl._nav_stack[-1] == "album"
+    ctrl._on_back()
+    assert ctrl._nav_stack[-1] == "artist"
+    assert win.stacked_widget.currentWidget() == win.artist_discography_widget
+
+
+def test_browsing_album_does_not_disturb_playback(harness):
+    ctrl, _engine, player, _win = harness
+    ctrl._on_album_data(True, {
+        "title": "A", "tracks": [
+            {"title": "1", "duration": 1000, "url": "u1"},
+            {"title": "2", "duration": 1000, "url": "u2"},
+        ],
+    }, "")
+    ctrl._play_track(0)
+    assert player.url == "u1"
+    ctrl._on_album_data(True, {
+        "title": "B", "tracks": [
+            {"title": "x", "duration": 1000, "url": "x1"},
+        ],
+    }, "")
+    assert ctrl._queue.index == 0
+    assert ctrl._queue.current()["url"] == "u1"
+    ctrl._on_track_ended()
+    assert ctrl._queue.index == 1
+    assert player.url == "u2"
 
 
 def test_track_ended_advances(harness):
@@ -157,7 +191,7 @@ def test_track_ended_advances(harness):
     }, "")
     ctrl._play_track(0)
     ctrl._on_track_ended()
-    assert ctrl._current_track_index == 1
+    assert ctrl._queue.index == 1
 
 
 def test_search_error_shown_in_status(harness):
@@ -204,7 +238,7 @@ def test_non_streamable_track_is_disabled(harness):
     assert row._streamable is False
     ctrl._play_track(1)
     assert player.url is None
-    assert ctrl._current_track_index == -1
+    assert ctrl._queue.index == -1
     assert "not available" in win.statusBar().currentMessage()
 
 
@@ -273,6 +307,9 @@ class FakeMpris(QObject):
     def emit_seeked(self, ms):
         self.seeked_ms = ms
 
+    def set_navigation(self, can_next, can_previous):
+        self.nav = (can_next, can_previous)
+
 
 @pytest.fixture
 def mpris_harness(window, qtbot):
@@ -311,9 +348,9 @@ def test_mpris_pause_after_last_track_restarts_album(mpris_harness):
     _load_two_track_album(ctrl)
     ctrl._play_track(1)
     ctrl._on_track_ended()
-    assert ctrl._current_track_index == -1
+    assert ctrl._queue.index == -1
     ctrl._on_mpris_command("play", 0)
-    assert ctrl._current_track_index == 0
+    assert ctrl._queue.index == 0
     assert player.url == "https://stream/1"
     assert mpris.playback_status == "Playing"
 
@@ -378,3 +415,55 @@ def test_position_tick_does_not_emit_seeked(mpris_harness):
     ctrl._on_position_changed(12000)
     assert mpris.position_ms == 12000
     assert mpris.seeked_ms is None
+
+
+def test_playback_error_refreshes_stale_url(harness):
+    ctrl, engine, player, _win = harness
+    ctrl._on_album_clicked(4199458029, 609345249, "a")
+    ctrl._on_album_data(True, {
+        "title": "A", "tracks": [
+            {"title": "1", "duration": 1000, "url": "old/1"},
+            {"title": "2", "duration": 1000, "url": "old/2"},
+        ],
+    }, "")
+    ctrl._play_track(0)
+    assert player.url == "old/1"
+    ctrl._on_playback_error()
+    assert engine.album_calls == [(4199458029, 609345249, "a")] * 2
+    ctrl._on_album_data(True, {
+        "title": "A", "tracks": [
+            {"title": "1", "duration": 1000, "url": "fresh/1"},
+            {"title": "2", "duration": 1000, "url": "fresh/2"},
+        ],
+    }, "")
+    assert player.url == "fresh/1"
+
+
+def test_prev_restarts_when_past_three_seconds(harness):
+    ctrl, _engine, player, _win = harness
+    ctrl._on_album_data(True, {
+        "title": "A", "tracks": [
+            {"title": "1", "duration": 100000, "url": "u1"},
+            {"title": "2", "duration": 100000, "url": "u2"},
+        ],
+    }, "")
+    ctrl._play_track(0)
+    player._time = 5000
+    ctrl._on_prev_clicked()
+    assert player._time == 0
+    assert ctrl._queue.index == 0
+
+
+def test_navigation_updates_mpris(harness):
+    ctrl, _engine, _player, _win = harness
+    ctrl.mpris = FakeMpris()
+    ctrl._on_album_data(True, {
+        "title": "A", "tracks": [
+            {"title": "1", "duration": 1000, "url": "u1"},
+            {"title": "2", "duration": 1000, "url": "u2"},
+        ],
+    }, "")
+    ctrl._play_track(0)
+    assert ctrl.mpris.nav == (True, False)
+    ctrl._play_track(1)
+    assert ctrl.mpris.nav == (False, True)

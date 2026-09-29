@@ -67,6 +67,10 @@ QStatusBar {
     font-size: 24px;
     font-weight: bold;
 }
+#artistBio {
+    color: #b3b3b3;
+    font-size: 13px;
+}
 #backButton {
     background-color: transparent;
     color: #b3b3b3;

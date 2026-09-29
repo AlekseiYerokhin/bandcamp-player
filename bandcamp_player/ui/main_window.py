@@ -1,4 +1,3 @@
-import contextlib
 import os
 
 from PySide6.QtCore import QSettings, Qt, Signal
@@ -66,6 +65,7 @@ class ClickableSlider(QSlider):
 
 class MainWindow(QMainWindow):
     search_requested = Signal(str)
+    back_requested = Signal()
 
     seek_requested = Signal(int)
 
@@ -238,14 +238,17 @@ class MainWindow(QMainWindow):
         self.album_cover_label = self.track_view.album_cover_label
         self.album_title_label = self.track_view.album_title_label
 
-        self.artist_view.back_button.clicked.connect(self.show_search_results)
-        self.track_view.back_button.clicked.connect(self.show_search_results)
+        self.artist_view.back_button.clicked.connect(self.back_requested.emit)
+        self.track_view.back_button.clicked.connect(self.back_requested.emit)
 
     def show_artist_discography(self):
         self.stacked_widget.setCurrentWidget(self.artist_discography_widget)
 
     def set_artist_name(self, name):
         self.artist_view.set_artist_name(name)
+
+    def set_artist_bio(self, bio):
+        self.artist_view.set_artist_bio(bio)
 
     def set_artist_image(self, image_url):
         if image_url:
@@ -373,12 +376,8 @@ class MainWindow(QMainWindow):
         self._abort_pending_images()
         self.search_view.clear()
 
-    def show_tracklist(self, back_callback=None):
+    def show_tracklist(self):
         self.stacked_widget.setCurrentWidget(self.tracklist_widget)
-        if back_callback:
-            with contextlib.suppress(RuntimeError):
-                self.track_view.back_button.clicked.disconnect()
-            self.track_view.back_button.clicked.connect(back_callback)
 
     def add_search_section(self, result_type: str):
         self.search_view.add_section(result_type)
