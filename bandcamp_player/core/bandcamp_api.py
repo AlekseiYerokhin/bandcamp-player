@@ -68,6 +68,11 @@ class BandcampAPI:
                 time.sleep(1.0)
                 return self._request_once(req, timeout, attempts - 1)
             raise BandcampAPIError(f"Network error: {e.reason}") from e
+        except TimeoutError as e:
+            if attempts > 0:
+                time.sleep(1.0)
+                return self._request_once(req, timeout, attempts - 1)
+            raise BandcampAPIError("Network timeout") from e
         except (OSError, ValueError) as e:
             raise BandcampAPIError(str(e)) from e
 

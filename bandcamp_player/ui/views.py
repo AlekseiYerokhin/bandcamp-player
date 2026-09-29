@@ -214,14 +214,26 @@ class ArtistDiscographyView(_ScrollingView):
         self.artist_name_label.setObjectName("artistName")
         self.artist_name_label.setWordWrap(True)
 
+        info_layout = QVBoxLayout()
+        info_layout.setSpacing(6)
+        self.artist_bio_label = QLabel("")
+        self.artist_bio_label.setObjectName("artistBio")
+        self.artist_bio_label.setWordWrap(True)
+
         header_layout.addWidget(self.back_button)
         header_layout.addWidget(self.artist_image_label)
-        header_layout.addWidget(self.artist_name_label, 1)
+        info_layout.addWidget(self.artist_name_label)
+        info_layout.addWidget(self.artist_bio_label)
+        info_layout.addStretch()
+        header_layout.addLayout(info_layout, 1)
         header_layout.addStretch()
         return header_layout
 
     def set_artist_name(self, name):
         self.artist_name_label.setText(name)
+
+    def set_artist_bio(self, bio):
+        self.artist_bio_label.setText(bio or "")
 
     def add_album(self, title, image_url, album_type):
         card = AlbumCard(title, image_url=image_url)

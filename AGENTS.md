@@ -43,8 +43,9 @@ main.py -> Controller -> BandcampEngine -> BandcampAPI  (data, worker threads)
 - `bandcamp_player/core/engine.py` — `QObject`; runs each API call on a bounded
   `ThreadPoolExecutor` and emits `search_results_ready` / `album_data_ready` /
   `artist_data_ready` (`bool, payload`). Never block the GUI thread here.
-- `bandcamp_player/core/controller.py` — wires UI events to engine/player; owns navigation
-  state (`_last_view`, `_current_band_id`, `_tracks`).
+- `bandcamp_player/core/controller.py` — wires UI events to engine/player; owns a
+  `PlaybackQueue` (what plays) separate from the tracklist *view*, and a navigation
+  stack (`_nav_stack`) for Back. Playback must survive browsing to other albums.
 - `bandcamp_player/core/player.py` — thin libVLC wrapper.
 - `bandcamp_player/ui/main_window.py` — window shell (search bar, player bar,
   stacked central area); the views live in `ui/views.py`, cards in `ui/cards.py`.
