@@ -116,11 +116,11 @@ class _PlayerInterface(ServiceInterface):
 
     @dbus_property(access=PropertyAccess.READ)
     def CanGoNext(self) -> "b":
-        return True
+        return self._service._can_go_next
 
     @dbus_property(access=PropertyAccess.READ)
     def CanGoPrevious(self) -> "b":
-        return True
+        return self._service._can_go_previous
 
     @dbus_property(access=PropertyAccess.READ)
     def CanSeek(self) -> "b":
@@ -170,7 +170,7 @@ class _PlayerInterface(ServiceInterface):
 class MprisService(QObject):
     """Owns the MPRIS D-Bus service in a background asyncio thread."""
 
-    command_requested = Signal(str, int)
+    command_requested = Signal(str, 'qint64')
     volume_requested = Signal(float)
 
     def __init__(self, identity: str = "Bandcamp Player", parent=None):
@@ -180,6 +180,8 @@ class MprisService(QObject):
         self._metadata: dict[str, Variant] = {}
         self._volume = 1.0
         self._position = 0
+        self._can_go_next = False
+        self._can_go_previous = False
         self._track_seq = 0
         self._ready = False
         self._error = None
@@ -245,6 +247,16 @@ class MprisService(QObject):
         if self._loop is not None and self._player_iface is not None:
             self._loop.call_soon_threadsafe(
                 lambda: self._player_iface.Seeked(position_ms * 1000))
+
+    def set_navigation(self, can_go_next: bool, can_go_previous: bool):
+        changes = {}
+        if can_go_next != self._can_go_next:
+            self._can_go_next = can_go_next
+            changes["CanGoNext"] = can_go_next
+        if can_go_previous != self._can_go_previous:
+            self._can_go_previous = can_go_previous
+            changes["CanGoPrevious"] = can_go_previous
+        self._emit(changes)
 
     def _emit(self, changes: dict):
         if changes and self._loop is not None and self._player_iface is not None:

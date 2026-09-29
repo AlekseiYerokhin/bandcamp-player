@@ -109,11 +109,26 @@ def test_player_interface_readonly_properties(service):
     assert player.CanControl is True
     assert player.CanPlay is True
     assert player.CanPause is True
-    assert player.CanGoNext is True
-    assert player.CanGoPrevious is True
+    assert player.CanGoNext is False
+    assert player.CanGoPrevious is False
     assert player.CanSeek is True
     assert player.CanStop is True
     assert player.Metadata == service._metadata
+
+
+def test_set_navigation_updates_can_go_props(service):
+    player = _PlayerInterface(service)
+    service.set_navigation(True, False)
+    assert player.CanGoNext is True
+    assert player.CanGoPrevious is False
+
+
+def test_command_signal_carries_64bit_position(service):
+    # SetPosition takes microseconds; a >35-minute track overflows 32-bit int.
+    got = []
+    service.command_requested.connect(lambda c, a: got.append((c, a)))
+    service._notify("set_position", 2147483648)  # 2^31 microseconds
+    assert got == [("set_position", 2147483648)]
 
 
 def test_commands_notify(service):
