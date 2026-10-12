@@ -1,4 +1,5 @@
 import logging
+import os
 import signal
 import sys
 
@@ -15,6 +16,12 @@ def main():
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
+    if os.environ.get("BANDCAMP_API_SMOKE"):
+        from bandcamp_player.core.bandcamp_api import BandcampAPI
+
+        data = BandcampAPI().search("chamber")
+        print(f"API SMOKE OK: {len(data)} results")
+        return
     app = QApplication(sys.argv)
     QCoreApplication.setOrganizationName("bandcamp-player")
     QCoreApplication.setApplicationName("bandcamp-player")

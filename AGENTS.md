@@ -60,9 +60,13 @@ main.py -> Controller -> BandcampEngine -> BandcampAPI  (data, worker threads)
 
 ## Gotchas
 
-- **Use `urllib`, not `requests`.** Bandcamp's Fastly bot detection challenges
-  urllib3 (`requests`) even on the JSON API; stdlib `urllib` works with the
-  same headers. Do not "modernize" this to `requests`.
+- **Transport: `curl_cffi` with Chrome impersonation, not `urllib`/`requests`.**
+  Bandcamp's Fastly CDN gates the JSON API by TLS fingerprint (JA3/JA4):
+  plain `urllib`, `requests`, and even `curl` (system build) get a JS challenge
+  page, while a Chrome TLS ClientHello sails through unchanged. `curl_cffi`
+  reproduces Chrome's fingerprint (`impersonate="chrome"`). Do not "simplify"
+  this back to `urllib` — search/app/artist will all regress to a Fastly
+  challenge. Caught live on 2026-10-11.
 - **Album search images.** The autocomplete `img` field is malformed for
   albums (`{id}_3.jpg` → 404). Build album/track images from `art_id` instead.
   Artist `img` is fine as-is.
@@ -113,8 +117,8 @@ main.py -> Controller -> BandcampEngine -> BandcampAPI  (data, worker threads)
 
 ## Testing
 
-- `tests/` uses `pytest`. `bandcamp_api.py` is tested with monkeypatched
-  `urllib` responses — **no live network calls in tests**.
+- `tests/` uses `pytest`. `bandcamp_api.py` is tested with a faked curl_cffi
+  session — **no live network calls in tests**.
 - When changing API parsing, update the fixtures in the tests accordingly.
 
 ## Git workflow

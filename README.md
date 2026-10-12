@@ -59,7 +59,7 @@ sha256sum -c Bandcamp-Player-x86_64.AppImage.sha256
 |---|---|
 | UI | PySide6 / Qt6 Widgets |
 | Playback | python-vlc (libVLC) |
-| Data | Bandcamp mobile JSON API via stdlib `urllib` |
+| Data | Bandcamp mobile JSON API via `curl_cffi` (Chrome TLS impersonation) |
 | Packaging | PyInstaller → AppImage |
 
 ## Architecture
@@ -87,7 +87,7 @@ sha256sum -c Bandcamp-Player-x86_64.AppImage.sha256
 ## Engineering highlights
 
 - **Dropped QtWebEngine for the mobile API.** The first version rendered Bandcamp pages in a headless Chromium and scraped the DOM. It worked, but the AppImage weighed **183 MB** and started slowly. Rewriting the data layer against Bandcamp's mobile JSON API cut the bundle to **65 MB** and made fetches several times faster.
-- **`urllib`, not `requests`.** Bandcamp fronts its HTML pages with a Fastly JS challenge. The JSON API endpoints are *not* challenged — but `requests` (urllib3) still trips the bot detection, while stdlib `urllib` sails through with identical headers. The client uses `urllib` accordingly.
+- **Chrome TLS impersonation instead of `urllib`.** Bandcamp's Fastly CDN gates the JSON API by TLS fingerprint (JA3/JA4): plain `urllib`, `requests`, and system `curl` all get a JS challenge page, while a Chrome TLS ClientHello is served normally. `curl_cffi` reproduces Chrome's TLS fingerprint, so the app reads the API directly with no browser engine embedded.
 - **VLC inside an AppImage.** Bundling `libvlc`, `libvlccore`, and a hand-picked set of plugins (demuxers, decoders, the `es` elementary-stream demux, the `mpegaudio` packetizer, the `gnutls` TLS plugin) so HTTPS streaming works out of the box — no system VLC required.
 - **PyInstaller hygiene.** Excluded bundled `libvlc`/FFmpeg/fontconfig copies that shadowed the AppImage's own libraries, and passed `--no-plugins-cache` / `--ignore-config` to libVLC for deterministic, quiet startup.
 - **Event-driven playback.** Track-end and stream errors come from libVLC events, not a polling timer — pausing near the end of a track no longer skips forward, and a broken stream stops cleanly instead of silently leaving the UI stuck on "playing".

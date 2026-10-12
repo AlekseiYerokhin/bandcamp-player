@@ -11,11 +11,14 @@ def test_bandcamp_api_imports_without_qt():
     the chain would fail. Ensures the "Qt-free, unit-testable" invariant holds.
     """
     repo_root = pathlib.Path(__file__).resolve().parent.parent
+    site_packages = str(pathlib.Path(sys.executable).parent.parent / "lib" / f"python{sys.version_info.major}.{sys.version_info.minor}" / "site-packages")
     code = "import bandcamp_player.core.bandcamp_api; print('OK')"
     result = subprocess.run(
         [sys.executable, "-S", "-c", code],
         cwd=repo_root,
-        env={**dict(os.environ), "PYTHONPATH": str(repo_root)},
+        # -S still blocks PySide6/vlc; PYTHONPATH restores the declared
+        # third-party deps (curl_cffi) so the Qt-free invariant is what's tested.
+        env={**dict(os.environ), "PYTHONPATH": os.pathsep.join([str(repo_root), site_packages])},
         capture_output=True,
         text=True,
         timeout=30,
