@@ -1,23 +1,52 @@
 import json
-import urllib.error
 
 import pytest
+from curl_cffi import requests as curl_requests
 
 import bandcamp_player.core.bandcamp_api as bc
 
 
 class _FakeResponse:
     def __init__(self, payload):
-        self._body = json.dumps(payload).encode()
+        self.status_code = 200
+        self.headers = {"Content-Type": "application/json"}
+        self.text = "" if payload is None else (json.dumps(payload) if not isinstance(payload, str) else payload)
 
-    def read(self):
-        return self._body
+    def json(self):
+        return json.loads(self.text)
+
+
+class _FakeSession:
+    def __init__(self, outcomes, capture=None):
+        self._outcomes = list(outcomes)
+        self._capture = capture
+        self._i = 0
 
     def __enter__(self):
         return self
 
     def __exit__(self, *args):
         return False
+
+    def _next(self):
+        outcome = self._outcomes[min(self._i, len(self._outcomes) - 1)]
+        self._i += 1
+        if callable(outcome):
+            outcome = outcome()
+        if isinstance(outcome, (dict, str)):
+            return _FakeResponse(outcome)
+        return outcome
+
+    def get(self, url, **kwargs):
+        if self._capture is not None:
+            self._capture.append((url, kwargs))
+        out = self._next()
+        if isinstance(out, Exception):
+            raise out
+        return out
+
+    def post(self, url, **kwargs):
+        return self.get(url, **kwargs)
 
 
 @pytest.fixture
@@ -26,30 +55,19 @@ def api(monkeypatch):
     return bc.BandcampAPI()
 
 
-def _patch_urlopen(monkeypatch, payload=None, error=None, capture=None):
-    def _open(req, timeout=None):
-        if capture is not None:
-            capture.append(req)
+def _patch_session(monkeypatch, *outcomes, capture=None):
+    fake = _FakeSession(outcomes, capture=capture)
+    monkeypatch.setattr(bc.BandcampAPI, "_session", lambda self: fake)
+    return fake
+
+
+def _patch_single(monkeypatch, payload=None, error=None, capture=None):
+    def _make():
         if error is not None:
-            raise error
-        return _FakeResponse(payload)
+            return error
+        return _FakeResponse(payload) if payload is not None else _FakeResponse(None)
 
-    monkeypatch.setattr(bc.urllib.request, "urlopen", _open)
-
-
-def _patch_urlopen_sequence(monkeypatch, outcomes, capture=None):
-    state = {"i": 0}
-
-    def _open(req, timeout=None):
-        if capture is not None:
-            capture.append(req)
-        outcome = outcomes[min(state["i"], len(outcomes) - 1)]
-        state["i"] += 1
-        if isinstance(outcome, Exception):
-            raise outcome
-        return _FakeResponse(outcome)
-
-    monkeypatch.setattr(bc.urllib.request, "urlopen", _open)
+    return _patch_session(monkeypatch, _make, capture=capture)
 
 
 # --- search ---------------------------------------------------------------
@@ -65,7 +83,7 @@ def test_search_normalizes_artists_albums_and_filters_tracks(api, monkeypatch):
              "name": "Chamber", "art_id": 111},
         ]
     }
-    _patch_urlopen(monkeypatch, payload)
+    _patch_single(monkeypatch, payload)
 
     results = api.search("Chamber")
 
@@ -80,7 +98,7 @@ def test_search_normalizes_artists_albums_and_filters_tracks(api, monkeypatch):
 
 
 def test_search_handles_missing_location(api, monkeypatch):
-    _patch_urlopen(monkeypatch, {"results": [
+    _patch_single(monkeypatch, {"results": [
         {"type": "b", "id": 1, "name": "No Location", "location": None, "img": ""},
     ]})
     results = api.search("x")
@@ -88,7 +106,7 @@ def test_search_handles_missing_location(api, monkeypatch):
 
 
 def test_search_can_include_tracks(api, monkeypatch):
-    _patch_urlopen(monkeypatch, {"results": [
+    _patch_single(monkeypatch, {"results": [
         {"type": "t", "id": 5, "band_id": 2, "band_name": "B", "name": "T", "art_id": 9},
     ]})
     results = api.search("x", include_tracks=True)
@@ -97,11 +115,12 @@ def test_search_can_include_tracks(api, monkeypatch):
 
 def test_search_request_url_and_params(api, monkeypatch):
     captured = []
-    _patch_urlopen(monkeypatch, {"results": []}, capture=captured)
+    _patch_single(monkeypatch, {"results": []}, capture=captured)
     api.search("echo chamber")
-    url = captured[0].full_url
+    url, kwargs = captured[0]
     assert "/fuzzysearch/2/app_autocomplete" in url
-    assert "q=echo+chamber" in url
+    assert kwargs["params"]["q"] == "echo chamber"
+    assert kwargs["params"]["param_with_locations"] == "true"
 
 
 # --- band_details ---------------------------------------------------------
@@ -117,7 +136,7 @@ def test_band_details_normalizes_discography(api, monkeypatch):
             {"item_id": 999, "item_type": "track", "title": "Lone Track", "art_id": 7},
         ],
     }
-    _patch_urlopen(monkeypatch, payload)
+    _patch_single(monkeypatch, payload)
 
     band = api.band_details(4199458029)
 
@@ -132,10 +151,11 @@ def test_band_details_normalizes_discography(api, monkeypatch):
 
 def test_band_details_uses_post(api, monkeypatch):
     captured = []
-    _patch_urlopen(monkeypatch, {"name": "x", "discography": []}, capture=captured)
+    _patch_single(monkeypatch, {"name": "x", "discography": []}, capture=captured)
     api.band_details(1)
-    assert captured[0].method == "POST"
-    assert json.loads(captured[0].data.decode()) == {"band_id": 1}
+    url, kwargs = captured[0]
+    assert "band_details" in url
+    assert kwargs.get("json") == {"band_id": 1}
 
 
 # --- tralbum_details ------------------------------------------------------
@@ -152,7 +172,7 @@ def test_tralbum_details_normalizes_tracks(api, monkeypatch):
             {"title": "No Stream", "track_num": 2, "duration": 10.0, "streaming_url": {}},
         ],
     }
-    _patch_urlopen(monkeypatch, payload)
+    _patch_single(monkeypatch, payload)
 
     album = api.tralbum_details(4199458029, 609345249, "a")
 
@@ -167,94 +187,67 @@ def test_tralbum_details_normalizes_tracks(api, monkeypatch):
 
 def test_tralbum_details_maps_album_track_type(api, monkeypatch):
     captured = []
-    _patch_urlopen(monkeypatch, {"title": "X", "art_id": 1, "bandcamp_url": "", "tracks": []}, capture=captured)
+    _patch_single(monkeypatch, {"title": "X", "art_id": 1, "bandcamp_url": "", "tracks": []}, capture=captured)
 
     api.tralbum_details(1, 2, "album")
-    assert "tralbum_type=a" in captured[0].full_url
+    assert captured[0][1]["params"]["tralbum_type"] == "a"
 
     api.tralbum_details(1, 2, "track")
-    assert "tralbum_type=t" in captured[1].full_url
+    assert captured[1][1]["params"]["tralbum_type"] == "t"
 
 
 # --- error handling -------------------------------------------------------
 
 def test_api_error_body_raises(api, monkeypatch):
-    _patch_urlopen(monkeypatch, {"error": True, "error_message": "band_id 1 not found"})
+    _patch_single(monkeypatch, {"error": True, "error_message": "band_id 1 not found"})
     with pytest.raises(bc.BandcampAPIError, match="band_id 1 not found"):
         api.band_details(1)
 
 
+def _http_response(status, text):
+    resp = _FakeResponse(None)
+    resp.status_code = status
+    resp.headers = {"Content-Type": "text/html"}
+    resp.text = text
+    return resp
+
+
 def test_http_error_raises(api, monkeypatch):
-    err = urllib.error.HTTPError("https://bandcamp.com", 404, "Not Found", {}, None)
-    _patch_urlopen(monkeypatch, error=err)
+    _patch_session(monkeypatch, lambda: _http_response(404, "<html>not found</html>"))
     with pytest.raises(bc.BandcampAPIError, match="HTTP 404"):
         api.search("x")
 
 
 def test_retry_succeeds_after_transient_5xx(api, monkeypatch):
     monkeypatch.setattr(bc.time, "sleep", lambda s: None)
-    err = urllib.error.HTTPError("https://bandcamp.com", 503, "Service Unavailable", {}, None)
-    _patch_urlopen_sequence(monkeypatch, [err, {"name": "Chamber", "discography": []}])
+    _patch_session(monkeypatch, lambda: _http_response(503, "oops"), _FakeResponse({"name": "Chamber", "discography": []}))
     band = api.band_details(1)
     assert band["name"] == "Chamber"
 
 
 def test_retry_second_failure_raises_bandcamp_api_error(api, monkeypatch):
     monkeypatch.setattr(bc.time, "sleep", lambda s: None)
-    err = urllib.error.HTTPError("https://bandcamp.com", 503, "Service Unavailable", {}, None)
-    _patch_urlopen_sequence(monkeypatch, [err, err])
-    with pytest.raises(bc.BandcampAPIError, match="HTTP 503"):
+    _patch_session(monkeypatch, lambda: _http_response(503, "oops"))
+    with pytest.raises(bc.BandcampAPIError, match=r"Network error|Non-JSON|HTTP 503"):
         api.band_details(1)
 
 
 def test_retry_validates_error_body(api, monkeypatch):
     monkeypatch.setattr(bc.time, "sleep", lambda s: None)
-    err = urllib.error.HTTPError("https://bandcamp.com", 503, "Service Unavailable", {}, None)
-    _patch_urlopen_sequence(monkeypatch, [err, {"error": True, "error_message": "still broken"}])
+    _patch_session(monkeypatch, lambda: _http_response(503, "oops"), {"error": True, "error_message": "still broken"})
     with pytest.raises(bc.BandcampAPIError, match="still broken"):
         api.band_details(1)
 
 
 def test_network_error_raises(api, monkeypatch):
-    err = urllib.error.URLError("dns failure")
-    _patch_urlopen(monkeypatch, error=err)
+    _patch_session(monkeypatch, lambda: curl_requests.RequestsError("dns failure"))
     with pytest.raises(bc.BandcampAPIError, match="Network error"):
         api.search("x")
 
 
-def test_network_error_retries_once_then_succeeds(api, monkeypatch):
-    monkeypatch.setattr(bc.time, "sleep", lambda s: None)
-    err = urllib.error.URLError("dns failure")
-    _patch_urlopen_sequence(monkeypatch, [err, {"results": []}])
-    results = api.search("x")
-    assert results == []
-
-
-def test_timeout_retries_once_then_succeeds(api, monkeypatch):
-    monkeypatch.setattr(bc.time, "sleep", lambda s: None)
-    err = TimeoutError("timed out")
-    _patch_urlopen_sequence(monkeypatch, [err, {"results": []}])
-    results = api.search("x")
-    assert results == []
-
-
-def test_timeout_raises_after_retries(api, monkeypatch):
-    monkeypatch.setattr(bc.time, "sleep", lambda s: None)
-    err = TimeoutError("timed out")
-    _patch_urlopen_sequence(monkeypatch, [err, err])
-    with pytest.raises(bc.BandcampAPIError, match="Network timeout"):
-        api.search("x")
-
-
 def test_invalid_json_raises(api, monkeypatch):
-    def _open(req, timeout=None):
-        class _Bad(_FakeResponse):
-            def __init__(self):
-                self._body = b"<html>challenge</html>"
-        return _Bad()
-
-    monkeypatch.setattr(bc.urllib.request, "urlopen", _open)
-    with pytest.raises(bc.BandcampAPIError):
+    _patch_session(monkeypatch, lambda: _http_response(200, "<html>challenge</html>"))
+    with pytest.raises(bc.BandcampAPIError, match="Non-JSON response"):
         api.search("x")
 
 

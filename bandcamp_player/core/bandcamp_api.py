@@ -1,10 +1,9 @@
 import json
 import threading
 import time
-import urllib.error
-import urllib.parse
-import urllib.request
 from typing import ClassVar
+
+from curl_cffi import requests as curl_requests
 
 _RETRYABLE_STATUS = (429, 500, 502, 503, 504)
 
@@ -16,29 +15,26 @@ class BandcampAPIError(Exception):
 class BandcampAPI:
     BASE_URL = "https://bandcamp.com/api"
     HEADERS: ClassVar[dict[str, str]] = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
         "Accept": "application/json",
     }
     MIN_INTERVAL = 0.3
     _last_call_time = 0.0
     _throttle_lock = threading.Lock()
 
+    def _session(self):
+        # Chrome TLS impersonation is required: Bandcamp's Fastly CDN bounces
+        # plain TLS clients (JA3/JA4 fingerprint gate) with a JS challenge.
+        return curl_requests.Session(impersonate="chrome")
+
     def _get(self, path, params=None):
         url = self.BASE_URL + path
-        if params:
-            url += "?" + urllib.parse.urlencode(params)
-        return self._open(urllib.request.Request(url, headers=self.HEADERS))
+        with self._session() as session:
+            return self._open(session.get, url, params=params)
 
     def _post(self, path, payload):
         url = self.BASE_URL + path
-        body = json.dumps(payload).encode()
-        req = urllib.request.Request(
-            url,
-            data=body,
-            headers={**self.HEADERS, "Content-Type": "application/json"},
-            method="POST",
-        )
-        return self._open(req)
+        with self._session() as session:
+            return self._open(session.post, url, json=payload)
 
     def _throttle(self):
         with self._throttle_lock:
@@ -47,34 +43,30 @@ class BandcampAPI:
                 time.sleep(self.MIN_INTERVAL - elapsed)
             type(self)._last_call_time = time.monotonic()
 
-    def _open(self, req, timeout=15):
+    def _open(self, send, url, **kwargs):
         self._throttle()
-        data = self._request_once(req, timeout, attempts=1)
+        data = self._request_once(send, url, kwargs, attempts=1)
         if isinstance(data, dict) and data.get("error"):
             raise BandcampAPIError(data.get("error_message") or "API error")
         return data
 
-    def _request_once(self, req, timeout, attempts):
+    def _request_once(self, send, url, kwargs, attempts):
         try:
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
-                return json.loads(resp.read().decode())
-        except urllib.error.HTTPError as e:
-            if e.code in _RETRYABLE_STATUS and attempts > 0:
-                time.sleep(1.0)
-                return self._request_once(req, timeout, attempts - 1)
-            raise BandcampAPIError(f"HTTP {e.code}") from e
-        except urllib.error.URLError as e:
-            if attempts > 0:
-                time.sleep(1.0)
-                return self._request_once(req, timeout, attempts - 1)
-            raise BandcampAPIError(f"Network error: {e.reason}") from e
-        except TimeoutError as e:
-            if attempts > 0:
-                time.sleep(1.0)
-                return self._request_once(req, timeout, attempts - 1)
-            raise BandcampAPIError("Network timeout") from e
-        except (OSError, ValueError) as e:
-            raise BandcampAPIError(str(e)) from e
+            resp = send(url, headers=self.HEADERS, timeout=15, **kwargs)
+        except curl_requests.RequestsError as e:
+            raise BandcampAPIError(f"Network error: {e}") from e
+        if resp.status_code in _RETRYABLE_STATUS and attempts > 0:
+            time.sleep(1.0)
+            return self._request_once(send, url, kwargs, attempts - 1)
+        try:
+            return json.loads(resp.text)
+        except ValueError as e:
+            snippet = (resp.text or "")[:200] or "<empty body>"
+            raise BandcampAPIError(
+                f"Non-JSON response from {url}: "
+                f"HTTP {resp.status_code}, {resp.headers.get('Content-Type')}, "
+                f"body: {snippet!r}"
+            ) from e
 
     def tralbum_details(self, band_id, tralbum_id, tralbum_type="a"):
         code = "t" if tralbum_type in ("t", "track") else "a"

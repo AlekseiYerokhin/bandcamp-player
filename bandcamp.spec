@@ -1,15 +1,21 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+from PyInstaller.utils.hooks import collect_all
+
+curl_cffi_datas, curl_cffi_binaries, curl_cffi_hidden = collect_all('curl_cffi')
+
 a = Analysis(
     ['main.py'],
     pathex=[],
-    binaries=[],
+    binaries=curl_cffi_binaries,
     datas=[
         ('assets', 'assets'),
+        *curl_cffi_datas,
     ],
     hiddenimports=[
         'PySide6.QtSvg',
         'PySide6.QtNetwork',
+        *curl_cffi_hidden,
     ],
     hookspath=[],
     hooksconfig={},

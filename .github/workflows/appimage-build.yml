@@ -53,6 +53,10 @@ jobs:
         run: |
           QT_QPA_PLATFORM=offscreen timeout 20 ./build/Bandcamp-Player-x86_64.AppImage || [ $? -eq 124 ]
 
+      - name: Smoke test (live API via bundled curl_cffi)
+        run: |
+          BANDCAMP_API_SMOKE=1 timeout 30 ./build/Bandcamp-Player-x86_64.AppImage || [ $? -eq 124 ]
+
       - name: Upload AppImage
         uses: actions/upload-artifact@v4
         with:
