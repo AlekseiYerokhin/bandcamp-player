@@ -2,6 +2,34 @@
 
 Project guide for AI coding agents working in this repository.
 
+## Mandatory rule: write in ASD-STE100
+
+All agents must write all text in ASD-STE100 Simplified Technical English.
+This rule has the highest priority. It applies to every change in this
+repository.
+
+This text includes:
+
+- Code comments and docstrings
+- Commit messages
+- Pull request titles and descriptions
+- Documentation (README.md, AGENTS.md, CHANGELOG.md, PLAN.md)
+- User interface text and log messages
+- Messages to the user
+
+Rules:
+
+- Use the approved words of ASD-STE100. Use one word for one meaning.
+- Use the technical names of the project (for example `PlaybackQueue`,
+  `curl_cffi`).
+- Write short sentences. Maximum: 20 words for an instruction, 25 words for
+  a description.
+- Write one instruction in one sentence.
+- Use the active voice.
+- Use the simple present tense.
+- Do not use slang, idioms, or metaphors.
+- Do not use more than three nouns together.
+
 ## What this is
 
 A desktop **Bandcamp player**: PySide6 (Qt6) UI + libVLC playback + Bandcamp's
