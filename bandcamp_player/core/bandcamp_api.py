@@ -12,29 +12,49 @@ class BandcampAPIError(Exception):
     pass
 
 
+class BandcampChallengeError(BandcampAPIError):
+    """Bandcamp returned the CDN challenge page instead of JSON."""
+
+
 class BandcampAPI:
     BASE_URL = "https://bandcamp.com/api"
     HEADERS: ClassVar[dict[str, str]] = {
         "Accept": "application/json",
     }
+    # Fastly allowlists TLS fingerprints. The newest Chrome fingerprint is
+    # challenged, so start with a known-good one and keep fallbacks.
+    IMPERSONATIONS: ClassVar[tuple[str, ...]] = (
+        "chrome131",
+        "chrome136",
+        "chrome124",
+        "chrome120",
+        "safari",
+        "firefox",
+    )
     MIN_INTERVAL = 0.3
     _last_call_time = 0.0
     _throttle_lock = threading.Lock()
 
-    def _session(self):
+    def __init__(self):
+        self._impersonate: str | None = None
+
+    def _session(self, impersonate: str):
         # Chrome TLS impersonation is required: Bandcamp's Fastly CDN bounces
         # plain TLS clients (JA3/JA4 fingerprint gate) with a JS challenge.
-        return curl_requests.Session(impersonate="chrome")
+        return curl_requests.Session(impersonate=impersonate)
+
+    def _candidates(self) -> tuple[str, ...]:
+        if self._impersonate:
+            return (self._impersonate, *(
+                item for item in self.IMPERSONATIONS if item != self._impersonate
+            ))
+        return self.IMPERSONATIONS
 
     def _get(self, path, params=None):
-        url = self.BASE_URL + path
-        with self._session() as session:
-            return self._open(session.get, url, params=params)
+        return self._request("get", self.BASE_URL + path, params=params)
 
     def _post(self, path, payload):
-        url = self.BASE_URL + path
-        with self._session() as session:
-            return self._open(session.post, url, json=payload)
+        return self._request("post", self.BASE_URL + path, json=payload)
 
     def _throttle(self):
         with self._throttle_lock:
@@ -43,12 +63,25 @@ class BandcampAPI:
                 time.sleep(self.MIN_INTERVAL - elapsed)
             type(self)._last_call_time = time.monotonic()
 
-    def _open(self, send, url, **kwargs):
+    def _request(self, method, url, **kwargs):
         self._throttle()
-        data = self._request_once(send, url, kwargs, attempts=1)
-        if isinstance(data, dict) and data.get("error"):
-            raise BandcampAPIError(data.get("error_message") or "API error")
-        return data
+        last_error: BandcampAPIError | None = None
+        for impersonate in self._candidates():
+            try:
+                with self._session(impersonate) as session:
+                    data = self._request_once(
+                        getattr(session, method), url, kwargs, attempts=1
+                    )
+            except BandcampChallengeError as e:
+                last_error = e
+                continue
+            self._impersonate = impersonate
+            if isinstance(data, dict) and data.get("error"):
+                raise BandcampAPIError(data.get("error_message") or "API error")
+            return data
+        if last_error is not None:
+            raise last_error
+        raise BandcampAPIError("No TLS fingerprint accepted by Bandcamp")
 
     def _request_once(self, send, url, kwargs, attempts):
         try:
@@ -61,10 +94,17 @@ class BandcampAPI:
         try:
             return json.loads(resp.text)
         except ValueError as e:
-            snippet = (resp.text or "")[:200] or "<empty body>"
+            body = resp.text or ""
+            snippet = body[:200] or "<empty body>"
+            content_type = resp.headers.get("Content-Type", "")
+            if "Client Challenge" in body or "_fs-ch-" in body:
+                raise BandcampChallengeError(
+                    f"CDN challenge from {url}: HTTP {resp.status_code}, "
+                    f"{content_type}, body: {snippet!r}"
+                ) from e
             raise BandcampAPIError(
                 f"Non-JSON response from {url}: "
-                f"HTTP {resp.status_code}, {resp.headers.get('Content-Type')}, "
+                f"HTTP {resp.status_code}, {content_type}, "
                 f"body: {snippet!r}"
             ) from e
 

@@ -88,13 +88,14 @@ main.py -> Controller -> BandcampEngine -> BandcampAPI  (data, worker threads)
 
 ## Gotchas
 
-- **Transport: `curl_cffi` with Chrome impersonation, not `urllib`/`requests`.**
-  Bandcamp's Fastly CDN gates the JSON API by TLS fingerprint (JA3/JA4):
-  plain `urllib`, `requests`, and even `curl` (system build) get a JS challenge
-  page, while a Chrome TLS ClientHello sails through unchanged. `curl_cffi`
-  reproduces Chrome's fingerprint (`impersonate="chrome"`). Do not "simplify"
-  this back to `urllib` — search/app/artist will all regress to a Fastly
-  challenge. Caught live on 2026-10-11.
+- **Transport: `curl_cffi` with a pinned TLS fingerprint, not `urllib`.**
+  Bandcamp's Fastly CDN gates the JSON API by TLS fingerprint (JA3/JA4).
+  Plain `urllib`, `requests`, and system `curl` get a JS challenge page.
+  `curl_cffi` reproduces a browser fingerprint. Use a specific version, not
+  the `"chrome"` alias: the alias tracks the newest Chrome, and Fastly may
+  challenge it. `BandcampAPI.IMPERSONATIONS` lists the fallbacks. The client
+  caches the first fingerprint that returns JSON. Caught live on 2026-10-11
+  and again on 2026-11-10 (`chrome150` was blocked).
 - **Album search images.** The autocomplete `img` field is malformed for
   albums (`{id}_3.jpg` → 404). Build album/track images from `art_id` instead.
   Artist `img` is fine as-is.
