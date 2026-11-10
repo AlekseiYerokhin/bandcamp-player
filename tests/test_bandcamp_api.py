@@ -17,9 +17,10 @@ class _FakeResponse:
 
 
 class _FakeSession:
-    def __init__(self, outcomes, capture=None):
+    def __init__(self, outcomes, capture=None, sessions=None):
         self._outcomes = list(outcomes)
         self._capture = capture
+        self._sessions = sessions
         self._i = 0
 
     def __enter__(self):
@@ -55,9 +56,15 @@ def api(monkeypatch):
     return bc.BandcampAPI()
 
 
-def _patch_session(monkeypatch, *outcomes, capture=None):
-    fake = _FakeSession(outcomes, capture=capture)
-    monkeypatch.setattr(bc.BandcampAPI, "_session", lambda self: fake)
+def _patch_session(monkeypatch, *outcomes, capture=None, sessions=None):
+    fake = _FakeSession(outcomes, capture=capture, sessions=sessions)
+
+    def _session(self, impersonate=None):
+        if sessions is not None:
+            sessions.append(impersonate)
+        return fake
+
+    monkeypatch.setattr(bc.BandcampAPI, "_session", _session)
     return fake
 
 
@@ -68,6 +75,13 @@ def _patch_single(monkeypatch, payload=None, error=None, capture=None):
         return _FakeResponse(payload) if payload is not None else _FakeResponse(None)
 
     return _patch_session(monkeypatch, _make, capture=capture)
+
+
+def _challenge_response():
+    resp = _FakeResponse(None)
+    resp.headers = {"Content-Type": "text/html; charset=utf-8"}
+    resp.text = "<!DOCTYPE html><html><title>Client Challenge</title></html>"
+    return resp
 
 
 # --- search ---------------------------------------------------------------
@@ -249,6 +263,41 @@ def test_invalid_json_raises(api, monkeypatch):
     _patch_session(monkeypatch, lambda: _http_response(200, "<html>challenge</html>"))
     with pytest.raises(bc.BandcampAPIError, match="Non-JSON response"):
         api.search("x")
+
+
+# --- TLS fingerprint fallback ---------------------------------------------
+
+def test_challenge_retries_with_next_fingerprint(api, monkeypatch):
+    sessions = []
+    _patch_session(monkeypatch, _challenge_response, {"results": []}, sessions=sessions)
+    results = api.search("x")
+    assert results == []
+    assert sessions == ["chrome131", "chrome136"]
+
+
+def test_working_fingerprint_is_cached(api, monkeypatch):
+    sessions = []
+    _patch_session(monkeypatch, {"results": []}, sessions=sessions)
+    api.search("x")
+    api.search("y")
+    assert sessions == ["chrome131", "chrome131"]
+
+
+def test_all_fingerprints_challenged_raises(api, monkeypatch):
+    _patch_session(monkeypatch, _challenge_response)
+    with pytest.raises(bc.BandcampChallengeError):
+        api.search("x")
+
+
+def test_non_challenge_error_does_not_retry(api, monkeypatch):
+    sessions = []
+    resp = _FakeResponse(None)
+    resp.headers = {"Content-Type": "application/json"}
+    resp.text = "{bad json"
+    _patch_session(monkeypatch, resp, sessions=sessions)
+    with pytest.raises(bc.BandcampAPIError, match="Non-JSON response"):
+        api.search("x")
+    assert sessions == ["chrome131"]
 
 
 # --- image helpers --------------------------------------------------------
